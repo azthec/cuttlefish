@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<server port="8080">
+  <module context="Jetty_Servlet" name="Jetty Servlet" path="/home/diogo/Workspace/SD 1819/workFolder/SD-FS/.metadata/.plugins/org.eclipse.wst.server.core/tmp0/Jetty Servlet" type="j2ee"/>
+</server>
