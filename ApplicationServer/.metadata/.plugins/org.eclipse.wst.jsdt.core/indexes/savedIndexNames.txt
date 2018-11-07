@@ -1,7 +1,0 @@
-INDEX VERSION 1.4+/home/diogo/Workspace/SD 1819/workFolder/SD-FS/.metadata/.plugins/org.eclipse.wst.jsdt.core/indexes
-2863631132.index
-4185008292.index
-3760878488.index
-520953812.index
-1004905988.index
-454986788.index
