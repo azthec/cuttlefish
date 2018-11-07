@@ -14,20 +14,23 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
-    // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-server
+
+    // Jetty
     compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.4.12.v20180830'
-    // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-servlets
-    compile group: 'org.eclipse.jetty', name: 'jetty-servlets', version: '9.4.12.v20180830'
-    // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-servlet
     compile group: 'org.eclipse.jetty', name: 'jetty-servlet', version: '9.4.12.v20180830'
-    // https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-server
+
+    //Jersey
     compile group: 'org.glassfish.jersey.core', name: 'jersey-server', version: '2.27'
-    // https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-client
     compile group: 'org.glassfish.jersey.core', name: 'jersey-client', version: '2.27'
-    // https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-common
     compile group: 'org.glassfish.jersey.core', name: 'jersey-common', version: '2.27'
-    // https://mvnrepository.com/artifact/org.glassfish.jersey.containers/jersey-container-servlet
     compile group: 'org.glassfish.jersey.containers', name: 'jersey-container-servlet', version: '2.27'
-    // https://mvnrepository.com/artifact/org.glassfish.jersey.inject/jersey-hk2
     compile group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version: '2.27'
+
+    //Atomix dependency
+    compile group: 'org.slf4j', name: 'slf4j-jdk14', version: '1.7.25'
+    //Atomix
+    compile group: 'io.atomix', name: 'atomix', version: '3.0.7'
+    compile group: 'io.atomix', name: 'atomix-raft', version: '3.0.7'
+    compile group: 'io.atomix', name: 'atomix-primary-backup', version: '3.0.7'
+    compile group: 'io.atomix', name: 'atomix-gossip', version: '3.0.7'
 }

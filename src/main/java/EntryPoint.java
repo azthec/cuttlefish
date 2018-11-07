@@ -13,7 +13,8 @@ public class EntryPoint {
     @Produces(MediaType.TEXT_PLAIN)
     public String process(@PathParam("param") String cmd) {
         String cmdRes = exectuteCmd(cmd);
-        return cmdRes ;
+        System.out.println(cmd);
+        return cmd ;
     }
 
     private String exectuteCmd(String cmd){
