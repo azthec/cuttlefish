@@ -1,4 +1,5 @@
 plugins {
+    id 'com.github.johnrengelman.shadow' version '4.0.2'
     id 'java'
 }
 
@@ -29,6 +30,4 @@ dependencies {
     compile group: 'org.glassfish.jersey.containers', name: 'jersey-container-servlet', version: '2.27'
     // https://mvnrepository.com/artifact/org.glassfish.jersey.inject/jersey-hk2
     compile group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version: '2.27'
-
-
 }

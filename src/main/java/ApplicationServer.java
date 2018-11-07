@@ -1,8 +1,9 @@
-
-
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+
+// after building shadowJar run with
+// java -cp cuttlefish-1.0-SNAPSHOT-all.jar ApplicationServer
 
 public class ApplicationServer {
     public static void main(String[] args) throws Exception {
