@@ -17,7 +17,7 @@ public class EntryPoint {
     }
 
     private String exectuteCmd(String cmd){
-        return "";
+        return "you wanna execute "+cmd+".\n";
     }
 
     /*@GET
