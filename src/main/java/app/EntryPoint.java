@@ -5,16 +5,13 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import java.io.File;
 import java.nio.file.Paths;
 
 @Path("/api")
 public class EntryPoint {
 
-    //static variables to sim a filesystem
-    java.nio.file.Path basePath = Paths.get(System.getProperty("user.dir"));
-    java.nio.file.Path currentPath = Paths.get(System.getProperty("user.dir"));
-
-
+    File baseDir = new File(System.getProperty("user.dir"));
 
     @GET
     @Path("/{param}")
@@ -33,16 +30,31 @@ public class EntryPoint {
             case "pwd":
                 res += pwd();
                 break;
+            case "test":
+                res += test();
+                break;
         }
         return res;
     }
 
+    private String test(){
+        return baseDir.getName();
+    }
+
     private String ls(){
-        return "";
+        String res = "";
+        for(File file:baseDir.listFiles()){
+            if(file.isDirectory()){
+                res+= file.getName()+"/ ";
+            } else {
+               res += file.getName()+" ";
+            }
+        }
+        return res;
     }
 
     private String pwd(){
-        return resolvePath(basePath,currentPath).toString();
+          return null;
     }
 
     //https://stackoverflow.com/questions/33083397/filtering-upwards-path-traversal-in-java-or-scala
@@ -61,13 +73,8 @@ public class EntryPoint {
 
         return resolvedPath;
     }
-    /*@GET
-    @Path("ping")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String ping() {
-        return "pong!";
-    }
 
+    /*
     @GET
     @Path("cd")
     @Produces(MediaType.TEXT_PLAIN)
