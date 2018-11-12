@@ -2,10 +2,26 @@ package app;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.List;
 
 class FileSplit {
+    public byte[] createSha1(File file) throws Exception  {
+        MessageDigest digest = MessageDigest.getInstance("SHA-1");
+        InputStream fis = new FileInputStream(file);
+        int n = 0;
+        byte[] buffer = new byte[8192];
+        while (n != -1) {
+            n = fis.read(buffer);
+            if (n > 0) {
+                digest.update(buffer, 0, n);
+            }
+        }
+        return digest.digest();
+    }
+
+
     public static void splitFile(File f) throws IOException {
         int partCounter = 1;//I like to name parts from 001, 002, 003, ...
         //you can change it to 0 if you want 000, 001, ...
