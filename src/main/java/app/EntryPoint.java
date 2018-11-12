@@ -56,7 +56,7 @@ public class EntryPoint {
         String res = "";
         for(File file:baseDir.listFiles()){
             if(file.isDirectory()){
-                res+= file.getName()+"/ \n";
+                res+= AppMisc.ANSI_BLUE+file.getName()+"/"+ AppMisc.ANSI_RESET +"\n";
             } else {
                 res += file.getName()+" \n";
             }
