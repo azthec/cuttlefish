@@ -5,13 +5,15 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import java.io.File;
+import java.io.*;
 import java.nio.file.Paths;
 
 @Path("/api")
 public class EntryPoint {
 
     File baseDir = new File(System.getProperty("user.dir"));
+    File currDir = new File(System.getProperty("user.dir"));
+
 
     @GET
     @Path("/{param}")
@@ -30,8 +32,17 @@ public class EntryPoint {
             case "pwd":
                 res += pwd();
                 break;
+            case "cd":
+                cd(cmd_parted[1]);
+                break;
+            case "cat":
+                res += cat(cmd_parted[1]);
+                break;
             case "test":
                 res += test();
+                break;
+            default:
+                res = "Could not execute the requested command!";
                 break;
         }
         return res;
@@ -45,16 +56,38 @@ public class EntryPoint {
         String res = "";
         for(File file:baseDir.listFiles()){
             if(file.isDirectory()){
-                res+= file.getName()+"/ ";
+                res+= file.getName()+"/ \n";
             } else {
-               res += file.getName()+" ";
+                res += file.getName()+" \n";
             }
         }
         return res;
     }
 
     private String pwd(){
-          return null;
+        return currDir.getName();
+    }
+
+    private String cat (String filePath){
+        String res = "Content: \n";
+        File targetFile = new File(filePath);
+        try {
+            BufferedReader bufferedReader = new BufferedReader(new FileReader(targetFile));
+            String s;
+            while((s=bufferedReader.readLine()) != null){
+                res += s+"\n";
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println(res);
+        return res;
+    }
+
+    private boolean cd(String folder){
+        return false;
     }
 
     //https://stackoverflow.com/questions/33083397/filtering-upwards-path-traversal-in-java-or-scala
@@ -75,28 +108,8 @@ public class EntryPoint {
     }
 
     /*
-    @GET
-    @Path("cd")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String cd() {
-        return "";
-    }
 
-    @GET
-    @Path("ls")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String ls() {
-        return "";
-    }
-
-    @GET
-    @Path("pwd")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String pwd() {
-        return "";
-    }
-
-    @GET
+     @GET
     @Path("cat")
     @Produces(MediaType.TEXT_PLAIN)
     public String cat() {
