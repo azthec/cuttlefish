@@ -1,5 +1,7 @@
 package app;
 
+import org.glassfish.jersey.jaxb.internal.XmlJaxbElementProvider;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -38,6 +40,9 @@ public class EntryPoint {
             case "cat":
                 res += cat(cmd_parted[1]);
                 break;
+            case "mkdir":
+                System.out.println("mkdir with foldername: "+cmd_parted[1]);
+                res += mkdir(cmd_parted[1]);
             case "test":
                 res += test();
                 break;
@@ -50,6 +55,28 @@ public class EntryPoint {
 
     private String test(){
         return baseDir.getName();
+    }
+
+    private String mkdir(String newFolderPath){
+        String res = "";
+        File newFolder = new File(newFolderPath);
+        if (!newFolder.exists()) {
+            boolean result = false;
+            try{
+                newFolder.mkdir();
+                result = true;
+            }
+            catch(SecurityException se){
+                se.printStackTrace();
+            }
+            if(!result) {
+                res = "Could not create folder, check your permissions...";
+            }
+        } else{
+            res = "That folder already exists...";
+        }
+        System.out.println("res: "+res);
+        return res;
     }
 
     private String ls(){
@@ -108,13 +135,6 @@ public class EntryPoint {
     }
 
     /*
-
-     @GET
-    @Path("cat")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String cat() {
-        return "";
-    }
 
     @GET
     @Path("mkdir")
