@@ -43,6 +43,10 @@ public class EntryPoint {
             case "mkdir":
                 System.out.println("mkdir with foldername: "+cmd_parted[1]);
                 res += mkdir(cmd_parted[1]);
+            case "rmdir":
+                System.out.println("rmdir on: "+cmd_parted[1]);
+                res += rmdir(cmd_parted[1]);
+                break;
             case "test":
                 res += test();
                 break;
@@ -76,6 +80,25 @@ public class EntryPoint {
             res = "That folder already exists...";
         }
         System.out.println("res: "+res);
+        return res;
+    }
+
+    private String rmdir(String folderPath){
+        String res = "";
+            File target = new File(folderPath);
+            if(!target.exists() || target.exists() && !target.isDirectory())
+                res = "Folder doesn't exist or isn't a directory...";
+            else if(target.exists() && target.isDirectory()){
+                if(target.listFiles().length == 0){
+                    if(!target.getAbsolutePath().equals(currDir.getPath())){
+                        if(!target.delete()){
+                            res="Couldn't delete the folder, check your permissions...";
+                        }
+                    }
+                } else{
+                    res = "The folder isn't empty...";
+                }
+            }
         return res;
     }
 
@@ -135,14 +158,6 @@ public class EntryPoint {
     }
 
     /*
-
-    @GET
-    @Path("mkdir")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String mkdir() {
-        return "";
-    }
-
     @GET
     @Path("rmdir")
     @Produces(MediaType.TEXT_PLAIN)
