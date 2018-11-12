@@ -27,33 +27,40 @@ public class EntryPoint {
     private String exectuteCmd(String cmd){
         String[] cmd_parted = cmd.split(" ");
         String res="";
-        switch (cmd_parted[0]){
+
+        switch (cmd_parted[0]) {
             case "ls":
-                res += ls();
+                res = ls();
                 break;
             case "pwd":
-                res += pwd();
+                res = pwd();
                 break;
             case "cd":
-                cd(cmd_parted[1]);
+                res = cd(cmd_parted[1]);
                 break;
             case "cat":
-                res += cat(cmd_parted[1]);
+                res = cat(cmd_parted[1]);
                 break;
             case "mkdir":
-                System.out.println("mkdir with foldername: "+cmd_parted[1]);
-                res += mkdir(cmd_parted[1]);
+                System.out.println("mkdir with foldername: " + cmd_parted[1]);
+                res = mkdir(cmd_parted[1]);
+                break;
             case "rmdir":
-                System.out.println("rmdir on: "+cmd_parted[1]);
-                res += rmdir(cmd_parted[1]);
+                System.out.println("rmdir on: " + cmd_parted[1]);
+                res = rmdir(cmd_parted[1]);
                 break;
             case "test":
-                res += test();
+                res = test();
                 break;
             default:
+                // implementar > aqui
+                if(cmd_parted.length == 3){
+                    System.out.println("Redirecting "+cmd_parted[0]+" to "+cmd_parted[2]);
+                }
                 res = "Could not execute the requested command!";
                 break;
         }
+
         return res;
     }
 
@@ -74,31 +81,33 @@ public class EntryPoint {
                 se.printStackTrace();
             }
             if(!result) {
+                System.out.println("1: "+res);
                 res = "Could not create folder, check your permissions...";
             }
         } else{
+            System.out.println("2: "+res);
             res = "That folder already exists...";
         }
-        System.out.println("res: "+res);
+        System.out.println("3: "+res);
         return res;
     }
 
     private String rmdir(String folderPath){
         String res = "";
-            File target = new File(folderPath);
-            if(!target.exists() || target.exists() && !target.isDirectory())
-                res = "Folder doesn't exist or isn't a directory...";
-            else if(target.exists() && target.isDirectory()){
-                if(target.listFiles().length == 0){
-                    if(!target.getAbsolutePath().equals(currDir.getPath())){
-                        if(!target.delete()){
-                            res="Couldn't delete the folder, check your permissions...";
-                        }
+        File target = new File(folderPath);
+        if(!target.exists() || target.exists() && !target.isDirectory())
+            res = "Folder doesn't exist or isn't a directory...";
+        else if(target.exists() && target.isDirectory()){
+            if(target.listFiles().length == 0){
+                if(!target.getAbsolutePath().equals(currDir.getPath())){
+                    if(!target.delete()){
+                        res="Couldn't delete the folder, check your permissions...";
                     }
-                } else{
-                    res = "The folder isn't empty...";
                 }
+            } else{
+                res = "The folder isn't empty...";
             }
+        }
         return res;
     }
 
@@ -136,8 +145,8 @@ public class EntryPoint {
         return res;
     }
 
-    private boolean cd(String folder){
-        return false;
+    private String cd(String folder){
+        return "";
     }
 
     //https://stackoverflow.com/questions/33083397/filtering-upwards-path-traversal-in-java-or-scala
@@ -158,12 +167,6 @@ public class EntryPoint {
     }
 
     /*
-    @GET
-    @Path("rmdir")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String rmdir() {
-        return "";
-    }
 
     @GET
     @Path("echo")
