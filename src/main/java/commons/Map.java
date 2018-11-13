@@ -1,10 +1,4 @@
-package monitor;
-
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.security.MessageDigest;
+package commons;
 
 
 /*
@@ -31,10 +25,10 @@ import java.security.MessageDigest;
  * Devices are always at the leaves.
  */
 public class Map {
-    private int map_epoch;
-    private Node root;
+    public int map_epoch;
+    public Node root;
     // n_placement_groups = 2k − 1
-    int n_placement_groups;
+    public int n_placement_groups;
     // TODO CRUSH hierarchy
     // TODO CRUSH placement rules
 
@@ -43,7 +37,7 @@ public class Map {
         root = new Node(000, "root", -1, false);
     }
 
-    Node get_root() {
+    public Node get_root() {
         return root;
     }
 

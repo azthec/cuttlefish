@@ -1,14 +1,15 @@
 package monitor;
 
+import commons.Map;
+import commons.Node;
+import commons.Crush;
+
 import java.util.*;
 
 public class Rados {
-    static int p = 14981273;
-    static int m = 3;
-
     // boot up system
     public static void main(String[] args) {
-        Map cluster_map = new Map();
+        commons.Map cluster_map = new Map();
 
         Node b001 = new Node(11, "row", -1, false);
         b001.add(new Node(20, "leaf", 1000, true));
@@ -35,64 +36,11 @@ public class Rados {
         List<Node> root_list = new ArrayList<>();
         root_list.add(cluster_map.get_root());
 
-        List<Node> got = select(2, "row",root_list, 1337);
+        List<Node> got = Crush.select(2, "row",root_list, 1337);
         System.out.println(got.get(0).hash + " " + got.get(1).hash);
-        List<Node> git = select(1, "leaf", got, 1337);
+        List<Node> git = Crush.select(1, "leaf", got, 1337);
         System.out.println(git.get(0).hash + " " + git.get(1).hash);
-
     }
 
-    static public List<Node> select(int n, String type, List<Node> working_vector, int x) {
 
-        List<Node> output = new ArrayList<>();
-        int r_line;
-        Node i, o;
-        for (Iterator<Node> iterator = working_vector.iterator(); iterator.hasNext();) {
-            i = iterator.next();
-
-            int failures = 0;
-            for (int r = 1; r <= n; r++) {
-                //TODO error if r > m, no uniqueness guarantee!
-                int replica_failures = 0;
-                boolean retry_descent = false;
-                do {
-                    Node b = i;
-                    boolean retry_bucket = false;
-                    do {
-                        //TODO only replica rank for now
-                        r_line = r + failures;
-                        // System.out.println(b.hash);
-                        // System.out.println(c(r_line, x));
-                        o = b.get_children().get(c(r_line, x));
-                        // System.out.println(type);
-                        // System.out.println(o.type);
-                        // System.out.println(o.type.equals(type));
-                        if (!o.type.equals(type)) {
-                            b = o;
-                            retry_bucket = true;
-                        } else if (output.contains(o) || o.failed || o.overloaded) {
-                            replica_failures++;
-                            failures++;
-                            if (output.contains(o) && replica_failures < 3) {
-                                retry_bucket = true;
-                            } else {
-                                retry_descent = true;
-                            }
-                        }
-                    } while ( retry_bucket);
-                } while ( retry_descent);
-                output.add(o);
-            }
-        }
-
-        return output;
-    }
-
-    // x is the file input vale / object ID
-    static public int c(int r, int x) {
-        //int[] output = new int[r];
-        //TODO hash actual x instead of using just passed value
-
-        return (x + r * p) % m;
-    }
 }
