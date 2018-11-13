@@ -34,7 +34,7 @@ public class Map {
 
     public Map() {
         map_epoch = 0;
-        root = new Node(000, "root", -1, false);
+        root = new Node(000, "root", -1, false, false);
     }
 
     public Node get_root() {

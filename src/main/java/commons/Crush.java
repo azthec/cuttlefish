@@ -1,14 +1,30 @@
 package commons;
 
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.math3.primes.Primes;
+
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Crush {
-    static int p = 14981273;
-    static int m = 3;
+    // TODO fix randomness, somes nodes are never selected
 
-    static public List<Node> select(int n, String type, List<Node> working_vector, int oid) {
+    private int p = 14981273;
+    private int m = 4;
 
+    public List<Node> select_OSDs(Node root, String oid) {
+        String sha256hex = DigestUtils.sha256Hex(oid);
+        BigInteger oid_bint = new BigInteger(sha256hex, 16);
+        List<Node> root_list = new ArrayList<>();
+        root_list.add(root);
+        List<Node> rows = select(2, "row", root_list, oid_bint);
+        List<Node> osds = select(1, "leaf", rows, oid_bint);
+        return osds;
+    }
+
+    public List<Node> select(int n, String type, List<Node> working_vector, BigInteger oid_bint) {
         List<Node> output = new ArrayList<>();
         int r_line;
         Node o;
@@ -22,9 +38,13 @@ public class Crush {
                     Node b = i;
                     boolean retry_bucket = false;
                     do {
-                        //TODO only replica rank for now
+                        // replica rank: replica
                         r_line = r + failures;
-                        o = b.get_children().get(c(r_line, oid));
+                        // replica rank: parity
+                        // r_line = r + replica_failures * n;
+                        int selected_osd = c(r_line, oid_bint, b.size);
+                        o = get_nth_alive_osd(b, selected_osd);
+
                         if (!o.type.equals(type)) {
                             b = o;
                             retry_bucket = true;
@@ -46,9 +66,36 @@ public class Crush {
         return output;
     }
 
-    static public int c(int r, int oid) {
-        //TODO hash actual x instead of using just passed value
+    private Node get_nth_alive_osd(Node b, int target) {
+        Node o;
+        int alives = 0;
+        int alive_target = -1; // crashes program if impossible
+        for (int j = 0; j < b.get_children().size(); j++) {
+            o = b.get_children().get(j);
+            if (o.failed || o.overloaded) {
+                continue;
+            } else {
+                if (target == alives) {
+                    alive_target = j;
+                    break;
+                } else {
+                    alives++;
+                }
+            }
+        }
+        o = b.get_children().get(alive_target);
+        return o;
+    }
 
-        return (oid + r * p) % m;
+    private int c(int r, BigInteger oid_bint, int m) {
+         return oid_bint
+                .add(BigInteger.valueOf(r * p))
+                .mod(BigInteger.valueOf(m))
+                .intValue();
+//        return ((oid_bint + r*p) % m);
+    }
+
+    public void set_bucket_size(int m) {
+        this.m = m;
     }
 }
