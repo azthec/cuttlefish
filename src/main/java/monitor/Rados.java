@@ -17,32 +17,32 @@ public class Rados {
         commons.Map cluster_map = new Map();
         Random random = new Random();
 
-        // cluster_map.get_root().size = 3;
+        Node b001 = new Node(110, "row",false);
+        b001.add(new Node(0, "leaf", true));
+        b001.add(new Node(1, "leaf", true));
+        b001.add(new Node(2, "leaf", true));
+        b001.add(new Node(3, "leaf", true));
+        Node b010 = new Node(111, "row", false);
+        b010.add(new Node(4, "leaf", true));
+        b010.add(new Node(5, "leaf", true));
+        b010.add(new Node(6, "leaf", true));
+        b010.add(new Node(7, "leaf", true));
+        Node b100 = new Node(112, "row", false);
+        b100.add(new Node(8, "leaf", true));
+        b100.add(new Node(9, "leaf", true));
+        b100.add(new Node(10, "leaf", true));
+        b100.add(new Node(11, "leaf", true));
+        Node b111 = new Node(112, "row", false);
+        b111.add(new Node(12, "leaf", true));
+        b111.add(new Node(13, "leaf", true));
+        b111.add(new Node(14, "leaf", true));
+        b111.add(new Node(15, "leaf", true));
 
-        Node b001 = new Node(110, "row", -1, false, false);
-        b001.add(new Node(0, "leaf", 1000, true, true));
-        b001.add(new Node(1, "leaf", 1000, true, true));
-        b001.add(new Node(2, "leaf", 1000, true, true));
-        b001.add(new Node(3, "leaf", 1000, true, false));
-        b001.size = 1;
-        Node b010 = new Node(111, "row", -1, false, false);
-        b010.add(new Node(4, "leaf", -1, true, true));
-        b010.add(new Node(5, "leaf", -1, true, true));
-        b010.add(new Node(6, "leaf", -1, true, true));
-        b010.add(new Node(7, "leaf", 1000, true, false));
-        b010.size = 1;
-        Node b100 = new Node(112, "row", -1, false, false);
-        b100.add(new Node(8, "leaf", -1, true, true));
-        b100.add(new Node(9, "leaf", -1, true, true));
-        b100.add(new Node(10, "leaf", -1, true, true));
-        b100.add(new Node(11, "leaf", 1000, true, false));
-        b100.size = 1;
-        Node b111 = new Node(112, "row", -1, false,false);
-        b111.add(new Node(12, "leaf", -1, true, false));
-        b111.add(new Node(13, "leaf", -1, true, false));
-        b111.add(new Node(14, "leaf", -1, true, false));
-        b111.add(new Node(15, "leaf", 1000, true, false));
-        b111.size = 4;
+        // overload some dudes
+        b001.overloadChildren(b001.get_children().get(0));
+        b001.overloadChildren(b001.get_children().get(2));
+        b001.overloadChildren(b001.get_children().get(3));
+        b111.failChildren(b111.get_children().get(2));
 
         cluster_map.get_root().add(b001);
         cluster_map.get_root().add(b010);
@@ -52,9 +52,8 @@ public class Rados {
         cluster_map.get_root().print(0);
 
         Crush crush = new Crush();
-        crush.set_bucket_size(4);
 
-        test_select_randomness(crush, cluster_map.get_root());
+        // test_select_randomness(crush, cluster_map.get_root());
 
 
         // System.out.println(crush.select_OSDs(cluster_map.get_root(), "1337"));

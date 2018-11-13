@@ -12,7 +12,6 @@ public class Crush {
     // TODO fix randomness, somes nodes are never selected
 
     private int p = 14981273;
-    private int m = 4;
 
     public List<Node> select_OSDs(Node root, String oid) {
         String sha256hex = DigestUtils.sha256Hex(oid);
@@ -42,13 +41,13 @@ public class Crush {
                         r_line = r + failures;
                         // replica rank: parity
                         // r_line = r + replica_failures * n;
-                        int selected_osd = c(r_line, oid_bint, b.size);
+                        int selected_osd = c(r_line, oid_bint, b.alive_size);
                         o = get_nth_alive_osd(b, selected_osd);
 
                         if (!o.type.equals(type)) {
                             b = o;
                             retry_bucket = true;
-                        } else if (output.contains(o) || o.failed || o.overloaded) {
+                        } else if (output.contains(o) || o.isFailed() || o.isOverloaded()) {
                             replica_failures++;
                             failures++;
                             if (output.contains(o) && replica_failures < 3) {
@@ -72,7 +71,7 @@ public class Crush {
         int alive_target = -1; // crashes program if impossible
         for (int j = 0; j < b.get_children().size(); j++) {
             o = b.get_children().get(j);
-            if (o.failed || o.overloaded) {
+            if (o.isFailed() || o.isOverloaded()) {
                 continue;
             } else {
                 if (target == alives) {
@@ -95,7 +94,4 @@ public class Crush {
 //        return ((oid_bint + r*p) % m);
     }
 
-    public void set_bucket_size(int m) {
-        this.m = m;
-    }
 }

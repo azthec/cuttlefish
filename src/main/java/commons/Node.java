@@ -13,31 +13,85 @@ public class Node {
     public int nodeID;
     public String type;
     public int size;
-    public boolean is_osd;
+    public int alive_size;
+    private boolean is_osd;
     public boolean failed;
     public boolean overloaded;
 
     // for now buckets will only contain devices
     private List<Node> children;
 
-    public Node(int nodeID, String type, int size, boolean is_osd, boolean failed) {
+    public Node(int nodeID, String type, boolean is_osd) {
         this.nodeID = nodeID;
         this.type = type;
-        this.size = 4;
         this.is_osd = is_osd;
         children = new ArrayList<>();
 
         //TODO make dynamic once RADOS is able to track them
 
-        this.failed = failed;
+        this.failed = false;
         this.overloaded = false;
     }
 
     public void add(Node node) {
         if (!is_osd) {
             children.add(node);
+            size++;
+            alive_size++;
         } else {
             throw new IllegalArgumentException("Can't add node to leaf buckets.");
+        }
+    }
+
+    public void remove(Node node) {
+        children.remove(node);
+        size--;
+        if (!node.isFailed()) {
+            alive_size--;
+        }
+    }
+
+    public boolean isFailed() {
+        return failed;
+    }
+
+    public void failChildren(Node node) {
+        if (!node.isFailed() && !node.isOverloaded()) {
+            node.failed = true;
+            alive_size--;
+        } else {
+            throw new IllegalArgumentException("Node is already failed.");
+        }
+    }
+
+    public void unfailChildren(Node node) {
+        if (node.isFailed() && !node.isOverloaded()) {
+            node.failed = false;
+            alive_size++;
+        } else {
+            throw new IllegalArgumentException("Node is already alive.");
+        }
+    }
+
+    public boolean isOverloaded() {
+        return overloaded;
+    }
+
+    public void overloadChildren(Node node) {
+        if (!node.isFailed() && !node.isOverloaded()) {
+            node.overloaded = true;
+            alive_size--;
+        } else {
+            throw new IllegalArgumentException("Node is already overloaded.");
+        }
+    }
+
+    public void unoverloadChildren(Node node) {
+        if (!node.isFailed() && node.isOverloaded()) {
+            node.overloaded = false;
+            alive_size++;
+        } else {
+            throw new IllegalArgumentException("Node is already not overloaded.");
         }
     }
 
