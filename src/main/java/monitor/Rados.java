@@ -39,10 +39,10 @@ public class Rados {
         b111.add(new Node(15, "leaf", true));
 
         // overload some dudes
-        b001.overloadChildren(b001.get_children().get(0));
-        b001.overloadChildren(b001.get_children().get(2));
-        b001.overloadChildren(b001.get_children().get(3));
-        b111.failChildren(b111.get_children().get(2));
+        // b001.overloadChildren(b001.get_children().get(0));
+        // b001.overloadChildren(b001.get_children().get(2));
+        // b001.overloadChildren(b001.get_children().get(3));
+        // b111.failChildren(b111.get_children().get(2));
 
         cluster_map.get_root().add(b001);
         cluster_map.get_root().add(b010);
@@ -56,8 +56,7 @@ public class Rados {
         // test_select_randomness(crush, cluster_map.get_root());
 
 
-        // System.out.println(crush.select_OSDs(cluster_map.get_root(), "1337"));
-
+        System.out.println(crush.select_OSDs(cluster_map.get_root(), "1337"));
 
     }
 
