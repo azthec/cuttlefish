@@ -2,8 +2,6 @@ build/
 out/
 .idea/
 
-# Created by https://www.gitignore.io/api/gradle
-# Edit at https://www.gitignore.io/?templates=gradle
 
 ### Gradle ###
 .gradle
@@ -24,4 +22,7 @@ gradle-app.setting
 ### Gradle Patch ###
 **/build/
 
-# End of https://www.gitignore.io/api/gradle
+
+### Atomix ###
+atomix.conf
+

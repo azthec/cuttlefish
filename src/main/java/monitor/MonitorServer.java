@@ -6,14 +6,61 @@ import commons.Crush;
 
 import java.math.BigInteger;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
+
+import io.atomix.cluster.Member;
+import io.atomix.cluster.discovery.BootstrapDiscoveryProvider;
+import io.atomix.core.Atomix;
+import io.atomix.core.AtomixBuilder;
+import io.atomix.core.profile.Profile;
+import io.atomix.utils.net.Address;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 
-public class Rados {
-    // boot up system
+public class MonitorServer {
     public static void main(String[] args) {
+
+        // multicast defined cluster, much better
+        AtomixBuilder builder = Atomix.builder();
+        builder.withMemberId(args[0])
+                .withAddress(args[1], 5000)
+                .withMulticastEnabled()
+                .withMulticastAddress(new Address("230.0.0.1", 54321))
+                .build();
+
+        builder.addProfile(Profile.dataGrid());
+        Atomix atomix = builder.build();
+        atomix.start().join();
+
+//        // Add an event service subscriber
+//        atomix.getEventService().subscribe("test", message -> {
+//            return CompletableFuture.completedFuture(message);
+//        });
+//
+//        // Send a request-reply message via the event service
+//        atomix.getEventService().send("test", "Hello world!").thenAccept(response -> {
+//            System.out.println("Received " + response);
+//        });
+//
+//        // Broadcast a message to all event subscribers
+//        atomix.getEventService().broadcast("test", "Hello world!");
+
+        while(true) {
+            Collection<Member> members = atomix.getMembershipService().getMembers();
+            System.out.println(members);
+            try {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    public static void crush_poc() {
         commons.Map cluster_map = new Map();
         Random random = new Random();
 
@@ -57,7 +104,6 @@ public class Rados {
 
 
         System.out.println(crush.select_OSDs(cluster_map.get_root(), "1337"));
-
     }
 
     public static void test_select_randomness(Crush crush, Node root) {

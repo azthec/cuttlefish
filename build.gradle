@@ -18,7 +18,6 @@ dependencies {
     // Common libraries
     compile group: 'commons-codec', name: 'commons-codec', version: '1.9'
 
-
     // Jetty
     compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.4.12.v20180830'
     compile group: 'org.eclipse.jetty', name: 'jetty-servlet', version: '9.4.12.v20180830'
@@ -33,6 +32,7 @@ dependencies {
     //Atomix dependency
     compile group: 'org.slf4j', name: 'slf4j-jdk14', version: '1.7.25'
     //Atomix
+    //compile group: 'io.atomix', name: 'atomix-all', version: '1.0.8'
     compile group: 'io.atomix', name: 'atomix', version: '3.0.7'
     compile group: 'io.atomix', name: 'atomix-raft', version: '3.0.7'
     compile group: 'io.atomix', name: 'atomix-primary-backup', version: '3.0.7'
