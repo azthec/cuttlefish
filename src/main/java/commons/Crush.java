@@ -5,6 +5,7 @@ import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.math3.primes.Primes;
 
 import java.math.BigInteger;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +19,7 @@ public class Crush {
         BigInteger oid_bint = new BigInteger(sha256hex, 16);
         List<Node> root_list = new ArrayList<>();
         root_list.add(root);
-        List<Node> rows = select(2, "row", root_list, oid_bint);
+        List<Node> rows = select(4, "row", root_list, oid_bint);
         List<Node> osds = select(1, "leaf", rows, oid_bint);
         return osds;
     }
@@ -87,11 +88,12 @@ public class Crush {
     }
 
     private int c(int r, BigInteger oid_bint, int m) {
-         return oid_bint
-                .add(BigInteger.valueOf(r * p))
-                .mod(BigInteger.valueOf(m))
-                .intValue();
-//        return ((oid_bint + r*p) % m);
+         long rp = r * p;
+         BigInteger res = oid_bint
+                .add(BigInteger.valueOf(rp))
+                .mod(BigInteger.valueOf(m));
+         return res.intValue();
+//       return ((oid_bint + r*p) % m);
     }
 
 }

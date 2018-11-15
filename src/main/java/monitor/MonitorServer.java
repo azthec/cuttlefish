@@ -28,25 +28,12 @@ public class MonitorServer {
         builder.withMemberId(args[0])
                 .withAddress(args[1], 5000)
                 .withMulticastEnabled()
-                .withMulticastAddress(new Address("230.0.0.1", 54321))
+                .withMulticastAddress(new Address("230.4.2.0", 42069))
                 .build();
 
         builder.addProfile(Profile.dataGrid());
         Atomix atomix = builder.build();
         atomix.start().join();
-
-//        // Add an event service subscriber
-//        atomix.getEventService().subscribe("test", message -> {
-//            return CompletableFuture.completedFuture(message);
-//        });
-//
-//        // Send a request-reply message via the event service
-//        atomix.getEventService().send("test", "Hello world!").thenAccept(response -> {
-//            System.out.println("Received " + response);
-//        });
-//
-//        // Broadcast a message to all event subscribers
-//        atomix.getEventService().broadcast("test", "Hello world!");
 
         while(true) {
             Collection<Member> members = atomix.getMembershipService().getMembers();
@@ -58,6 +45,7 @@ public class MonitorServer {
             }
         }
 
+
     }
 
     public static void crush_poc() {
@@ -65,25 +53,25 @@ public class MonitorServer {
         Random random = new Random();
 
         Node b001 = new Node(110, "row",false);
-        b001.add(new Node(0, "leaf", true));
-        b001.add(new Node(1, "leaf", true));
-        b001.add(new Node(2, "leaf", true));
-        b001.add(new Node(3, "leaf", true));
+        b001.add(new Node(0, "osd", true));
+        b001.add(new Node(1, "osd", true));
+        b001.add(new Node(2, "osd", true));
+        b001.add(new Node(3, "osd", true));
         Node b010 = new Node(111, "row", false);
-        b010.add(new Node(4, "leaf", true));
-        b010.add(new Node(5, "leaf", true));
-        b010.add(new Node(6, "leaf", true));
-        b010.add(new Node(7, "leaf", true));
+        b010.add(new Node(4, "osd", true));
+        b010.add(new Node(5, "osd", true));
+        b010.add(new Node(6, "osd", true));
+        b010.add(new Node(7, "osd", true));
         Node b100 = new Node(112, "row", false);
-        b100.add(new Node(8, "leaf", true));
-        b100.add(new Node(9, "leaf", true));
-        b100.add(new Node(10, "leaf", true));
-        b100.add(new Node(11, "leaf", true));
+        b100.add(new Node(8, "osd", true));
+        b100.add(new Node(9, "osd", true));
+        b100.add(new Node(10, "osd", true));
+        b100.add(new Node(11, "osd", true));
         Node b111 = new Node(112, "row", false);
-        b111.add(new Node(12, "leaf", true));
-        b111.add(new Node(13, "leaf", true));
-        b111.add(new Node(14, "leaf", true));
-        b111.add(new Node(15, "leaf", true));
+        b111.add(new Node(12, "osd", true));
+        b111.add(new Node(13, "osd", true));
+        b111.add(new Node(14, "osd", true));
+        b111.add(new Node(15, "osd", true));
 
         // overload some dudes
         // b001.overloadChildren(b001.get_children().get(0));
@@ -100,10 +88,10 @@ public class MonitorServer {
 
         Crush crush = new Crush();
 
-        // test_select_randomness(crush, cluster_map.get_root());
+        test_select_randomness(crush, cluster_map.get_root());
 
 
-        System.out.println(crush.select_OSDs(cluster_map.get_root(), "1337"));
+        // System.out.println(crush.select_OSDs(cluster_map.get_root(), "1337"));
     }
 
     public static void test_select_randomness(Crush crush, Node root) {
@@ -115,8 +103,8 @@ public class MonitorServer {
             String oid = RandomStringUtils.random(32);
             String sha256hex = DigestUtils.sha256Hex(oid);
             BigInteger oid_bint = new BigInteger(sha256hex, 16);
-            List<Node> got = crush.select(4, "row", root_list, oid_bint);
-            git = crush.select(1, "leaf", got, oid_bint);
+            List<Node> got = crush.select(3, "row", root_list, oid_bint);
+            git = crush.select(1, "osd", got, oid_bint);
             for (Node j : git) {
                 counters[j.nodeID]++;
             }

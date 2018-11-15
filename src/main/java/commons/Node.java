@@ -128,7 +128,7 @@ public class Node {
         if (!is_osd) {
             return "bucket." + type + "@" + nodeID;
         } else {
-            return "osd." + type + "@" + nodeID;
+            return "storage." + type + "@" + nodeID;
         }
 
     }
