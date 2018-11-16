@@ -4,48 +4,63 @@ import commons.Map;
 import commons.Node;
 import commons.Crush;
 
+import java.io.File;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 
-import io.atomix.cluster.Member;
-import io.atomix.cluster.discovery.BootstrapDiscoveryProvider;
 import io.atomix.core.Atomix;
 import io.atomix.core.AtomixBuilder;
-import io.atomix.core.profile.Profile;
+import io.atomix.protocols.raft.partition.RaftPartitionGroup;
+import io.atomix.storage.StorageLevel;
 import io.atomix.utils.net.Address;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
 
 public class MonitorServer {
     public static void main(String[] args) {
+        String local_id = args[0];
+        String local_ip = args[1];
+        int local_port = Integer.parseInt(args[2]);
+        // Raft requires a static membership list
+        List<String> servers = new ArrayList<>();
+        servers.add("physical");
+        servers.add("virtual");
 
-        // multicast defined cluster, much better
+        Atomix atomix = getServer(local_id, local_ip, local_port, servers).join();
+        System.out.println("done");
+
+    }
+
+    public static CompletableFuture<Atomix> getServer(String local_id, String local_ip,
+                                                      int local_port,
+                                                      List<String> servers) {
         AtomixBuilder builder = Atomix.builder();
-        builder.withMemberId(args[0])
-                .withAddress(args[1], 5000)
+        builder.withMemberId(local_id)
+                .withAddress(local_ip, local_port)
                 .withMulticastEnabled()
-                .withMulticastAddress(new Address("230.4.2.0", 42069))
-                .build();
-
-        builder.addProfile(Profile.dataGrid());
+                .withMulticastAddress(new Address("230.4.20.69", 8008))
+                .withManagementGroup(RaftPartitionGroup.builder("system")
+                        .withNumPartitions(1).withMembers(servers)
+                        .withDataDirectory(new File("mngdir", local_id))
+                        .withStorageLevel(StorageLevel.MEMORY).build())
+                .addPartitionGroup(RaftPartitionGroup.builder("data")
+                        .withNumPartitions(1)
+                        .withDataDirectory(new File("datadir", local_id))
+                        .withStorageLevel(StorageLevel.MEMORY)
+                        .withMembers(servers)
+                        .build());
         Atomix atomix = builder.build();
-        atomix.start().join();
 
-        while(true) {
-            Collection<Member> members = atomix.getMembershipService().getMembers();
-            System.out.println(members);
-            try {
-                TimeUnit.SECONDS.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        atomix.getMembershipService().addListener(event -> System.out.println(event.toString()));
 
-
+        System.out.println("trying to start " + local_id + " on port " + local_port + ".");
+        return CompletableFuture.supplyAsync(() -> {
+            atomix.start().join();
+            return atomix;
+        });
     }
 
     public static void crush_poc() {

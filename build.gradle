@@ -41,9 +41,9 @@ dependencies {
     compile group: 'io.atomix', name: 'atomix-primary-backup', version: '3.0.7'
     compile group: 'io.atomix', name: 'atomix-gossip', version: '3.0.7'
 
-
+    // Protobuf && Protoc
     compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.6.1'
-    // compile group: 'com.google.protobuf', name: 'protoc', version: '3.6.1', ext: 'pom'
+
 }
 
 sourceSets {

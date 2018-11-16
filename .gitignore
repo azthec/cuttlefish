@@ -25,4 +25,6 @@ gradle-app.setting
 
 ### Atomix ###
 atomix.conf
+datadir/
+mngdir/
 
