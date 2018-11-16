@@ -1,24 +1,45 @@
 package app;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.io.*;
+import java.net.URLDecoder;
 
 @Path("/api")
 public class EntryPoint {
 
+    JSONParser parser = new JSONParser();
     private File baseDir = new File(System.getProperty("user.dir"));
-    private File currDir = new File(System.getProperty("user.dir"));
 
-
-    @GET
-    @Path("/{param}")
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
-    public String process(@PathParam("param") String cmd) {
-        return exectuteCmd(cmd);
+    public String process(InputStream incommingData) {
+
+        StringBuilder stringBuilder = new StringBuilder();
+        JSONObject jsonObject;
+        String cmd = "";
+
+        try{
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(incommingData));
+            String line = null;
+
+            while ((line = bufferedReader.readLine())!= null){
+                stringBuilder.append(line);
+            }
+
+            jsonObject = (JSONObject) parser.parse(stringBuilder.toString());
+            String decodedCmd = URLDecoder.decode((String) jsonObject.get("cmd"),"UTF-8");
+            cmd = exectuteCmd(decodedCmd, (String) jsonObject.get("currPath"));
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+        return cmd;
     }
 
     /**
@@ -33,40 +54,49 @@ public class EntryPoint {
      *            as well as bad/unimplemmented commands.
      * @return the result of that command, in String form.
      */
-    private String exectuteCmd(String cmd){
+    private String exectuteCmd(String cmd,String currPath){
         String[] cmd_parted = cmd.split(" ");
-        String res="";
+        String res = "Could not execute the requested command!"; // default value (changes if cmd is successful)
+
+        System.out.println("cmd is: ");
+        for(String s:cmd_parted)
+            System.out.println(s);
+        System.out.println("path is: "+currPath);
 
         switch (cmd_parted[0]) {
             case "ls":
-                res = ls();
+                res = ls(currPath+"/");
                 break;
             case "pwd":
-                res = pwd();
+                res = pwd(currPath+"/");
                 break;
             case "cd":
-                res = cd(cmd_parted[1]);
+                res = cd(cmd_parted[1],currPath+"/");
                 break;
             case "cat":
-                res = cat(cmd_parted[1]);
+                res = cat(cmd_parted[1],currPath+"/");
                 break;
             case "mkdir":
-                System.out.println("mkdir with foldername: " + cmd_parted[1]);
-                res = mkdir(cmd_parted[1]);
+                System.out.println("nome: "+cmd_parted[1]+" path: "+currPath);
+                res = mkdir(cmd_parted[1],currPath+"/");
                 break;
             case "rmdir":
-                System.out.println("rmdir on: " + cmd_parted[1]);
-                res = rmdir(cmd_parted[1]);
+                res = rmdir(cmd_parted[1],currPath+"/");
                 break;
             case "test":
-                res = test();
+                res = test(currPath+"/");
+                break;
+            case "echo":
+                res = echo(cmd_parted[1]);
                 break;
             default:
                 // implementar > aqui
                 if(cmd_parted.length == 3){
-                    System.out.println("Redirecting "+cmd_parted[0]+" to "+cmd_parted[2]);
+                    // file1's contents to file2 (create if not exists)
+                    if(cmd_parted[1].equals(">"))
+                        res = file2file(cmd_parted[0],cmd_parted[2],currPath+"/");
                 }
-                res = "Could not execute the requested command!";
+                cmd = "";
                 break;
         }
 
@@ -77,19 +107,19 @@ public class EntryPoint {
      * This is a test function, for debugging purposes.
      * @return
      */
-    private String test(){
-        return baseDir.getName();
+    private String test(String currPath){
+        return "";
     }
 
     /**
      * Implementation of mkdir.
-     * Creates a folder in the given path.
-     * @param newFolderPath the path to create the folder in
+     * Creates a folder in the given name.
+     * @param newFoldername the name to create to the folder.
      * @return an empty String for success or an error message.
      */
-    private String mkdir(String newFolderPath){
+    private String mkdir(String newFoldername, String currPath){
         String res = "";
-        File newFolder = new File(newFolderPath);
+        File newFolder = new File(currPath+newFoldername);
         if (!newFolder.exists()) {
             boolean result = false;
             try{
@@ -114,12 +144,13 @@ public class EntryPoint {
     /**
      * Implementation of rmdir.
      * Removes a folder if and only if it is empty.
-     * @param folderPath, the folder to remove
+     * @param folderName, the folder to remove
      * @return empty String for success, or an error message.
      */
-    private String rmdir(String folderPath){
+    private String rmdir(String folderName, String currPath){
         String res = "";
-        File target = new File(folderPath);
+        File currDir = new File(currPath);
+        File target = new File(currPath+folderName);
         if(!target.exists() || target.exists() && !target.isDirectory())
             res = "Folder doesn't exist or isn't a directory...";
         else if(target.exists() && target.isDirectory()){
@@ -140,9 +171,10 @@ public class EntryPoint {
      * Implementation of the ls command
      * @return the simplest version of ls (argumentless)
      */
-    private String ls(){
+    private String ls(String currPath){
         String res = "";
-        for(File file:baseDir.listFiles()){
+        File currDir = new File(currPath);
+        for(File file:currDir.listFiles()){
             if(file.isDirectory()){
                 res+= AppMisc.ANSI_BLUE+file.getName()+"/"+ AppMisc.ANSI_RESET +"\n";
             } else {
@@ -156,18 +188,19 @@ public class EntryPoint {
      * Implementation of pwd command
      * @return the present work directory
      */
-    private String pwd(){
+    private String pwd(String currPath){
+        File currDir = new File(currPath);
         return currDir.getName();
     }
 
     /**
      * Implementation of cat command
-     * @param filePath, the path to the file we want to cat.
+     * @param fileName, the path to the file we want to cat.
      * @return
      */
-    private String cat (String filePath){
+    private String cat (String fileName, String currDir){
         String res = "Content: \n";
-        File targetFile = new File(filePath);
+        File targetFile = new File(currDir+fileName);
         try {
             BufferedReader bufferedReader = new BufferedReader(new FileReader(targetFile));
             String s;
@@ -183,12 +216,39 @@ public class EntryPoint {
         return res;
     }
 
-    private String cd(String folder){
+    private String cd(String folder, String currDir){
         return "";
     }
 
+    private String echo(String phrase){
+        return phrase;
+    }
+
+    private String file2file(String file1, String file2, String currPath){
+        String res = "";
+        File currDir = new File(currPath);
+        File f2 = new File(file2);
+        String contents = cat(file1,currPath);
+
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(file2, "UTF-8");
+            writer.println(contents);
+            writer.flush();
+            writer.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        return res;
+    }
+
+
+
     //https://stackoverflow.com/questions/33083397/filtering-upwards-path-traversal-in-java-or-scala
-    public java.nio.file.Path resolvePath(final java.nio.file.Path baseDirPath, final java.nio.file.Path userPath) {
+  /*  public java.nio.file.Path resolvePath(final java.nio.file.Path baseDirPath, final java.nio.file.Path userPath) {
 
         if (!baseDirPath.isAbsolute())
             throw new IllegalArgumentException("Base path must be absolute");
@@ -202,16 +262,10 @@ public class EntryPoint {
             throw new IllegalArgumentException("User path escapes the base path");
 
         return resolvedPath;
-    }
+    }*/
 
     /*
 
-    @GET
-    @Path("echo")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String echo() {
-        return "";
-    }
 
     @GET
     @Path(">")

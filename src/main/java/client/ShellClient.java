@@ -1,9 +1,8 @@
 package client;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
+import org.json.simple.JSONObject;
+
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -13,13 +12,27 @@ import java.util.Scanner;
 
 public class ShellClient {
 
+    private static File currDir = new File(System.getProperty("user.dir"));
+
     static void executeCmd(String cmd){
 
         try {
-            URL url = new URL("http://localhost:8080/api/"+cmd);
+
+            JSONObject object = new JSONObject();
+            object.put("currPath",currDir.getPath());
+            object.put("cmd",cmd);
+            String jsonString = object.toString();
+
+            URL url = new URL("http://localhost:8080/api/");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Accept", "text/plain");
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+
+            OutputStream outputStream = conn.getOutputStream();
+            outputStream.write(jsonString.getBytes("UTF-8"));
+            outputStream.close();
 
             if (conn.getResponseCode() != 200) {
                 throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
@@ -28,11 +41,9 @@ public class ShellClient {
             BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
 
             String output;
-
             while ((output = br.readLine()) != null) {
                 System.out.println(output);
             }
-
             conn.disconnect();
 
         } catch (MalformedURLException e) {
