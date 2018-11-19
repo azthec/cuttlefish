@@ -46,13 +46,17 @@ public class MonitorServer {
         map.addListener(event -> {
             switch (event.type()) {
                 case INSERT:
-                    System.out.println("Insert event.");
+                    System.out.println("Entry added: (" + event.key() +
+                                       "," + event.newValue().value() + ")");
                     break;
                 case UPDATE:
-                    System.out.println("Update event.");
+                    System.out.println("Entry updated: (" + event.key() +
+                            "," + event.oldValue().value() + ") -> (" + event.key() +
+                            "," + event.newValue().value() + ")");
                     break;
                 case REMOVE:
-                    System.out.println("Remove event.");
+                    System.out.println("Entry removed: (" + event.key() +
+                                       "," + event.newValue().value() + ")");
                     break;
             }
         });
@@ -69,7 +73,6 @@ public class MonitorServer {
 
         while (true) {
             try {
-                System.out.println(map.get("hello"));
                 if (local_id.equals("figo")) {
                     map.put(in.nextLine(), in.nextLine());
                 }
@@ -77,7 +80,6 @@ public class MonitorServer {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
         }
 
 
