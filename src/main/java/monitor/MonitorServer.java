@@ -13,11 +13,13 @@ import java.util.concurrent.TimeUnit;
 
 import io.atomix.core.Atomix;
 import io.atomix.core.AtomixBuilder;
+import io.atomix.core.map.AtomicMap;
 import io.atomix.protocols.raft.partition.RaftPartitionGroup;
 import io.atomix.storage.StorageLevel;
 import io.atomix.utils.net.Address;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+
 
 public class MonitorServer {
     public static void main(String[] args) {
@@ -26,11 +28,59 @@ public class MonitorServer {
         int local_port = Integer.parseInt(args[2]);
         // Raft requires a static membership list
         List<String> servers = new ArrayList<>();
-        servers.add("physical");
-        servers.add("virtual");
+        servers.add("figo");
+        servers.add("messi");
+        servers.add("ronaldo");
 
         Atomix atomix = getServer(local_id, local_ip, local_port, servers).join();
-        System.out.println("done");
+
+        System.out.println("Created raft group!");
+
+        // try to share a fucking map
+        AtomicMap<Object, Object> map = atomix.atomicMapBuilder("map")
+                .withNullValues()
+                .withCacheEnabled()
+                .withCacheSize(100)
+                .build();
+
+        map.addListener(event -> {
+            switch (event.type()) {
+                case INSERT:
+                    System.out.println("Insert event.");
+                    break;
+                case UPDATE:
+                    System.out.println("Update event.");
+                    break;
+                case REMOVE:
+                    System.out.println("Remove event.");
+                    break;
+            }
+        });
+
+        if (local_id.equals("figo")) {
+            try {
+                map.put("hello", "world");
+            } catch (io.atomix.primitive.PrimitiveException e) {
+                e.printStackTrace();
+            }
+        }
+
+        Scanner in = new Scanner(System.in);
+
+        while (true) {
+            try {
+                System.out.println(map.get("hello"));
+                if (local_id.equals("figo")) {
+                    map.put(in.nextLine(), in.nextLine());
+                }
+                TimeUnit.SECONDS.sleep(1);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
+
 
     }
 
@@ -54,13 +104,22 @@ public class MonitorServer {
                         .build());
         Atomix atomix = builder.build();
 
-        atomix.getMembershipService().addListener(event -> System.out.println(event.toString()));
+        // atomix.getMembershipService().addListener(event -> System.out.println(event.toString()));
 
-        System.out.println("trying to start " + local_id + " on port " + local_port + ".");
+        System.out.println("Starting node: " + local_id + " @ Port: " + local_port + ".");
         return CompletableFuture.supplyAsync(() -> {
             atomix.start().join();
             return atomix;
         });
+    }
+
+
+    public static void register_osd() {
+
+    }
+
+    public static void update_osd() {
+
     }
 
     public static void crush_poc() {
