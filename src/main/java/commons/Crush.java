@@ -1,11 +1,9 @@
 package commons;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.RandomUtils;
-import org.apache.commons.math3.primes.Primes;
+import org.apache.commons.lang3.RandomStringUtils;
 
 import java.math.BigInteger;
-import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,28 +12,28 @@ public class Crush {
 
     private int p = 14981273;
 
-    public List<Node> select_OSDs(Node root, String oid) {
+    public List<CrushNode> select_OSDs(CrushNode root, String oid) {
         String sha256hex = DigestUtils.sha256Hex(oid);
         BigInteger oid_bint = new BigInteger(sha256hex, 16);
-        List<Node> root_list = new ArrayList<>();
+        List<CrushNode> root_list = new ArrayList<>();
         root_list.add(root);
-        List<Node> rows = select(4, "row", root_list, oid_bint);
-        List<Node> osds = select(1, "leaf", rows, oid_bint);
+        List<CrushNode> rows = select(2, "row", root_list, oid_bint);
+        List<CrushNode> osds = select(1, "osd", rows, oid_bint);
         return osds;
     }
 
-    public List<Node> select(int n, String type, List<Node> working_vector, BigInteger oid_bint) {
-        List<Node> output = new ArrayList<>();
+    public List<CrushNode> select(int n, String type, List<CrushNode> working_vector, BigInteger oid_bint) {
+        List<CrushNode> output = new ArrayList<>();
         int r_line;
-        Node o;
-        for (Node i : working_vector) {
+        CrushNode o;
+        for (CrushNode i : working_vector) {
             int failures = 0;
             for (int r = 1; r <= n; r++) {
                 //TODO error if r > m, no uniqueness guarantee!
                 int replica_failures = 0;
                 boolean retry_descent = false;
                 do {
-                    Node b = i;
+                    CrushNode b = i;
                     boolean retry_bucket = false;
                     do {
                         // replica rank: replica
@@ -66,8 +64,8 @@ public class Crush {
         return output;
     }
 
-    private Node get_nth_alive_osd(Node b, int target) {
-        Node o;
+    private CrushNode get_nth_alive_osd(CrushNode b, int target) {
+        CrushNode o;
         int alives = 0;
         int alive_target = -1; // crashes program if impossible
         for (int j = 0; j < b.get_children().size(); j++) {
@@ -94,6 +92,18 @@ public class Crush {
                 .mod(BigInteger.valueOf(m));
          return res.intValue();
 //       return ((oid_bint + r*p) % m);
+    }
+
+    public static BigInteger hash(String oid) {
+        String sha256hex = DigestUtils.sha256Hex(oid);
+        BigInteger oid_bint = new BigInteger(sha256hex, 16);
+        return oid_bint;
+    }
+
+    public static int get_pg_id(String oid, int total_pgs) {
+        BigInteger ho = Crush.hash(oid);
+        BigInteger mask = ho.and(BigInteger.valueOf(total_pgs));
+        return mask.intValue();
     }
 
 }

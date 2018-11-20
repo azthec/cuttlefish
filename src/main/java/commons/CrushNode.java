@@ -3,10 +3,9 @@ package commons;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 
 
-public class Node {
+public class CrushNode {
     // uniform buckets don't have weights, I think
     public int weight = 0;
     public String alg = "CRUSH_BUCKET_UNIFORM";
@@ -19,12 +18,14 @@ public class Node {
     public boolean overloaded;
 
     // for now buckets will only contain devices
-    private List<Node> children;
+    private List<CrushNode> children;
 
-    public Node(int nodeID, String type, boolean is_osd) {
+    public CrushNode(int nodeID, String type, boolean is_osd) {
         this.nodeID = nodeID;
         this.type = type;
         this.is_osd = is_osd;
+        this.size = 0;
+        this.alive_size = 0;
         children = new ArrayList<>();
 
         //TODO make dynamic once RADOS is able to track them
@@ -33,7 +34,7 @@ public class Node {
         this.overloaded = false;
     }
 
-    public void add(Node node) {
+    public void add(CrushNode node) {
         if (!is_osd) {
             children.add(node);
             size++;
@@ -43,7 +44,7 @@ public class Node {
         }
     }
 
-    public void remove(Node node) {
+    public void remove(CrushNode node) {
         children.remove(node);
         size--;
         if (!node.isFailed()) {
@@ -55,7 +56,7 @@ public class Node {
         return failed;
     }
 
-    public void failChildren(Node node) {
+    public void failChildren(CrushNode node) {
         if (!node.isFailed() && !node.isOverloaded()) {
             node.failed = true;
             alive_size--;
@@ -64,7 +65,7 @@ public class Node {
         }
     }
 
-    public void unfailChildren(Node node) {
+    public void unfailChildren(CrushNode node) {
         if (node.isFailed() && !node.isOverloaded()) {
             node.failed = false;
             alive_size++;
@@ -77,7 +78,7 @@ public class Node {
         return overloaded;
     }
 
-    public void overloadChildren(Node node) {
+    public void overloadChildren(CrushNode node) {
         if (!node.isFailed() && !node.isOverloaded()) {
             node.overloaded = true;
             alive_size--;
@@ -86,7 +87,7 @@ public class Node {
         }
     }
 
-    public void unoverloadChildren(Node node) {
+    public void unoverloadChildren(CrushNode node) {
         if (!node.isFailed() && node.isOverloaded()) {
             node.overloaded = false;
             alive_size++;
@@ -95,7 +96,7 @@ public class Node {
         }
     }
 
-    public List<Node> get_children() {
+    public List<CrushNode> get_children() {
         return children;
     }
 
@@ -104,8 +105,8 @@ public class Node {
             System.out.println("└── " + this.nodeID);
         }
 
-        for (Iterator<Node> iterator = this.get_children().iterator(); iterator.hasNext();) {
-            Node node = iterator.next();
+        for (Iterator<CrushNode> iterator = this.get_children().iterator(); iterator.hasNext();) {
+            CrushNode node = iterator.next();
             String spaces = String.format("%"+ (depth + 4) +"s", "");
             String fail = "";
             if (node.overloaded) {

@@ -17,6 +17,8 @@ package commons;
  * devices (CRUSH).
  */
 
+import java.util.List;
+
 /*
  * The cluster map is composed of devices and buckets, both of
  * which have numerical identifiers and weight values associated
@@ -24,20 +26,22 @@ package commons;
  *
  * Devices are always at the leaves.
  */
-public class Map {
+public class CrushMap {
     public int map_epoch;
-    public Node root;
-    // n_placement_groups = 2k − 1
-    public int n_placement_groups;
+    public CrushNode root;
     // TODO CRUSH hierarchy
     // TODO CRUSH placement rules
 
-    public Map() {
+    // Cluster OSD's, addresses and current state
+    public List<CrushNode> cluster_members;
+
+
+    public CrushMap() {
         map_epoch = 0;
-        root = new Node(000, "root", false);
+        root = new CrushNode(000, "root", false);
     }
 
-    public Node get_root() {
+    public CrushNode get_root() {
         return root;
     }
 
