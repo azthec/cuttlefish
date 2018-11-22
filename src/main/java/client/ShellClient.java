@@ -3,16 +3,32 @@ package client;
 import org.json.simple.JSONObject;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 public class ShellClient {
 
     private static File currDir = new File(System.getProperty("user.dir"));
+
+    private static void updateCurrDir(String s){
+        if(s.split(" ")[0].equals("ERROR")){
+            System.out.println("Invalid directory");
+        }
+        else currDir = new File((s+"/"));
+    }
+
+    private static String unURLifyCMD(String s){
+        String res = "";
+
+        try {
+           res =  URLDecoder.decode(s,"UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        return res;
+    }
 
     static void executeCmd(String cmd){
 
@@ -41,9 +57,17 @@ public class ShellClient {
             BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
 
             String output;
+            String resReceived = "";
             while ((output = br.readLine()) != null) {
-                System.out.println(output);
+                //System.out.println(output);
+                resReceived += output;
             }
+
+            System.out.println(resReceived);
+
+            if(unURLifyCMD(cmd).split(" ")[0].equals("cd"))
+                updateCurrDir(resReceived);
+
             conn.disconnect();
 
         } catch (MalformedURLException e) {

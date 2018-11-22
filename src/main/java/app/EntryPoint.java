@@ -44,24 +44,28 @@ public class EntryPoint {
 
     /**
      * This method executes the commands requested.
-     * Allways test the commands inside the "testfolder" directory, so you don't erase important files by mistake.
-     * @param cmd is the command to execute, passed as a string
-     *            The string is then split.
-     *            Following that we analyse the first word in the command, as most cases benefit from this.
-     *            If the first word is recognized as an implemented function, it is run, taking in consideration
+     *
+     * ATTENCHONE:
+     * Allways test the commands inside the "testfolder" directory, so you don't delete important files by mistake.
+     *
+     * @param cmd is the command to execute, passed as a String.
+     * @param currPath is the current path of the client.
+     *
+     *                The string is then split.
+     *
+     *                 Following that we analyse the first word in the command, as most cases benefit from this.
+     *
+     *                 If the first word is recognized as an implemented function, it is run, taking in consideration
      *            the remaining parameters.
-     *            If that fails, we enter a default case, where commands such as "<" and ">" can be detected,
+     *
+     *                 If that fails, we enter a default case, where commands such as "<" and ">" can be detected,
      *            as well as bad/unimplemmented commands.
+     *
      * @return the result of that command, in String form.
      */
     private String exectuteCmd(String cmd,String currPath){
         String[] cmd_parted = cmd.split(" ");
-        String res = "Could not execute the requested command!"; // default value (changes if cmd is successful)
-
-        System.out.println("cmd is: ");
-        for(String s:cmd_parted)
-            System.out.println(s);
-        System.out.println("path is: "+currPath);
+        String res = "Could not execute the requested command!"; // default value
 
         switch (cmd_parted[0]) {
             case "ls":
@@ -77,7 +81,6 @@ public class EntryPoint {
                 res = cat(cmd_parted[1],currPath+"/");
                 break;
             case "mkdir":
-                System.out.println("nome: "+cmd_parted[1]+" path: "+currPath);
                 res = mkdir(cmd_parted[1],currPath+"/");
                 break;
             case "rmdir":
@@ -176,7 +179,7 @@ public class EntryPoint {
         File currDir = new File(currPath);
         for(File file:currDir.listFiles()){
             if(file.isDirectory()){
-                res+= AppMisc.ANSI_BLUE+file.getName()+"/"+ AppMisc.ANSI_RESET +"\n";
+                res+= AppMisc.ANSI_BLUE+file.getName()+"/ "+ AppMisc.ANSI_RESET +"\n";
             } else {
                 res += file.getName()+" \n";
             }
@@ -190,7 +193,7 @@ public class EntryPoint {
      */
     private String pwd(String currPath){
         File currDir = new File(currPath);
-        return currDir.getName();
+        return currDir.getPath();
     }
 
     /**
@@ -216,18 +219,62 @@ public class EntryPoint {
         return res;
     }
 
+    /**
+     * Implementation of cd command
+     * returns new directory in case of success, error message else.
+     * @param folder
+     * @param currDir
+     * @return
+     */
     private String cd(String folder, String currDir){
-        return "";
+        File curr = new File(currDir);
+
+        if(folder.equals(".."))
+            return new File(currDir).getParent();
+
+        for(File file: curr.listFiles()){
+            if(file.getName().equals(folder) && file.isDirectory())
+                System.out.println("should change to: "+currDir+folder);
+                return currDir+folder;
+        }
+        return "ERROR invalid folder.";
     }
 
+    /**
+     * See "Serra de seteais for more details"
+     * @param phrase
+     * @return
+     */
     private String echo(String phrase){
         return phrase;
     }
 
+    /**
+     * implementation of the ">" command.
+     * @param file1 source
+     * @param file2 destination
+     * @param currPath the client's current path
+     * @return
+     */
     private String file2file(String file1, String file2, String currPath){
+        /*
+        *
+        *
+        * REFAZER
+        *
+        *
+        * */
         String res = "";
         File currDir = new File(currPath);
         File f2 = new File(file2);
+        if(!f2.exists()) {
+            try {
+                f2.createNewFile();
+                System.out.println("f2 is in: "+f2.getAbsolutePath());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         String contents = cat(file1,currPath);
 
         PrintWriter writer = null;
@@ -244,6 +291,7 @@ public class EntryPoint {
 
         return res;
     }
+}
 
 
 
@@ -264,14 +312,6 @@ public class EntryPoint {
         return resolvedPath;
     }*/
 
-    /*
 
 
-    @GET
-    @Path(">")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String redirectOutputTo() {
-        return "";
-    }*/
 
-}
