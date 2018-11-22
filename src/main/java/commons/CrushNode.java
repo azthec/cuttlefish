@@ -7,13 +7,11 @@ import java.util.List;
 
 public class CrushNode {
     // uniform buckets don't have weights, I think
-    public int weight = 0;
-    public String alg = "CRUSH_BUCKET_UNIFORM";
     public int nodeID;
     public String type;
     public int size;
     public int alive_size;
-    private boolean is_osd;
+    public boolean is_osd;
     public boolean failed;
     public boolean overloaded;
 

@@ -1,33 +1,25 @@
 package monitor;
 
+import commons.AtomixUtils;
 import commons.CrushMap;
 import commons.CrushNode;
 import commons.Crush;
 
-import java.io.File;
+
 import java.math.BigInteger;
-import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 
 import io.atomix.core.Atomix;
-import io.atomix.core.AtomixBuilder;
-import io.atomix.core.lock.DistributedLock;
-import io.atomix.core.map.AtomicMap;
-import io.atomix.protocols.raft.MultiRaftProtocol;
-import io.atomix.protocols.raft.ReadConsistency;
-import io.atomix.protocols.raft.partition.RaftPartitionGroup;
-import io.atomix.storage.StorageLevel;
-import io.atomix.utils.net.Address;
+import io.atomix.core.list.DistributedList;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 
 
 public class MonitorServer {
     public static void main(String[] args) {
-//        run_raft(args);
+        run_raft(args);
 //        crush_poc();
     }
 
@@ -42,48 +34,35 @@ public class MonitorServer {
         servers.add("messi");
         servers.add("ronaldo");
 
-        Atomix atomix = getServer(local_id, local_ip, local_port, servers).join();
+        AtomixUtils atomixUtils = new AtomixUtils();
+        Atomix atomix = atomixUtils.getServer(local_id, local_ip, local_port, servers).join();
 
         System.out.println("Created raft group!");
         System.out.println(atomix.getMembershipService().getMembers().toString());
 
-        // try to share a fucking map
-        AtomicMap<Object, Object> map = atomix.atomicMapBuilder("map")
-                .withNullValues()
-                .withCacheEnabled()
-                .withCacheSize(100)
-                .build();
-
-        map.addListener(event -> {
+        DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
+        distributed_crush_maps.addListener(event -> {
             switch (event.type()) {
-                case INSERT:
-                    System.out.println("Entry added: (" + event.key() +
-                            "," + event.newValue().value() + ")");
-                    break;
-                case UPDATE:
-                    System.out.println("Entry updated: (" + event.key() +
-                            "," + event.oldValue().value() + ") -> (" + event.key() +
-                            "," + event.newValue().value() + ")");
+                case ADD:
+                    System.out.println("Entry added: (" + event.element() + ")");
                     break;
                 case REMOVE:
-                    System.out.println("Entry removed: (" + event.key() +
-                            "," + event.newValue().value() + ")");
+                    System.out.println("Entry removed: (" + event.element() +")");
                     break;
             }
         });
 
-        DistributedLock lock = atomix.lockBuilder("lockerooni")
-                .withProtocol(MultiRaftProtocol.builder()
-                        .withReadConsistency(ReadConsistency.LINEARIZABLE)
-                        .build())
-                .build();
 
         if (local_id.equals("figo")) {
+            // TODO replace this with loading a config file eventually
+            register_map(distributed_crush_maps, sample_crush_map());
+        }
+
+        // wait for figo to register initial map
+        while(distributed_crush_maps.size() == 0) {
             try {
-                map.put("Hello", "World!");
-                lock.lock();
-                System.out.println(lock.isLocked());
-            } catch (io.atomix.primitive.PrimitiveException e) {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
@@ -92,10 +71,14 @@ public class MonitorServer {
 
         while (true) {
             try {
+                CrushMap shared_crush_map = distributed_crush_maps.get(0);
+                System.out.println("Current map: " + shared_crush_map +
+                        " | @ epoch: " + shared_crush_map.map_epoch);
+                shared_crush_map.get_root().print(0);
                 if (local_id.equals("figo")) {
-                    map.put(in.nextLine(), in.nextLine());
+                    shared_crush_map.get_root().add(new CrushNode(in.nextInt(), "row", false));
+                    register_map(distributed_crush_maps, shared_crush_map);
                 }
-                System.out.println(lock.isLocked());
                 TimeUnit.SECONDS.sleep(1);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -103,33 +86,15 @@ public class MonitorServer {
         }
     }
 
-    public static CompletableFuture<Atomix> getServer(String local_id, String local_ip,
-                                                      int local_port,
-                                                      List<String> servers) {
-        AtomixBuilder builder = Atomix.builder();
-        builder.withMemberId(local_id)
-                .withAddress(local_ip, local_port)
-                .withMulticastEnabled()
-                .withMulticastAddress(new Address("230.4.20.69", 8008))
-                .withManagementGroup(RaftPartitionGroup.builder("system")
-                        .withNumPartitions(1).withMembers(servers)
-                        .withDataDirectory(new File("mngdir", local_id))
-                        .withStorageLevel(StorageLevel.MEMORY).build())
-                .addPartitionGroup(RaftPartitionGroup.builder("data")
-                        .withNumPartitions(1)
-                        .withDataDirectory(new File("datadir", local_id))
-                        .withStorageLevel(StorageLevel.MEMORY)
-                        .withMembers(servers)
-                        .build());
-        Atomix atomix = builder.build();
 
-        atomix.getMembershipService().addListener(event -> System.out.println(event.toString()));
-
-        System.out.println("Starting node: " + local_id + " @ Port: " + local_port + ".");
-        return CompletableFuture.supplyAsync(() -> {
-            atomix.start().join();
-            return atomix;
-        });
+    public static void register_map(DistributedList<CrushMap> distributed_crush_maps,
+                                    CrushMap crush_map) {
+        int previous_epoch = 0;
+        if (distributed_crush_maps.size() >= 1) {
+            previous_epoch = distributed_crush_maps.get(0).map_epoch;
+        }
+        crush_map.map_epoch = previous_epoch + 1;
+        distributed_crush_maps.add(0, crush_map);
     }
 
 
@@ -141,7 +106,7 @@ public class MonitorServer {
 
     }
 
-    public static void crush_poc() {
+    public static CrushMap sample_crush_map() {
         CrushMap cluster_map = new CrushMap();
         Random random = new Random();
 
@@ -165,6 +130,12 @@ public class MonitorServer {
         cluster_map.get_root().add(b102);
 
         cluster_map.get_root().print(0);
+        return cluster_map;
+    }
+
+    public static void crush_poc() {
+
+        CrushMap cluster_map = sample_crush_map();
 
         Crush crush = new Crush();
 
