@@ -1,19 +1,19 @@
 package monitor;
 
-import commons.AtomixUtils;
-import commons.CrushMap;
-import commons.CrushNode;
-import commons.Crush;
+import commons.*;
 
 
 import java.math.BigInteger;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 
 import io.atomix.core.Atomix;
 import io.atomix.core.list.DistributedList;
-import org.apache.commons.codec.digest.DigestUtils;
+import io.atomix.core.value.AtomicValue;
 import org.apache.commons.lang3.RandomStringUtils;
 
 
@@ -40,51 +40,75 @@ public class MonitorServer {
         System.out.println("Created raft group!");
         System.out.println(atomix.getMembershipService().getMembers().toString());
 
+        // Create Raft List of CrushMaps
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         distributed_crush_maps.addListener(event -> {
             switch (event.type()) {
                 case ADD:
-                    System.out.println("Entry added: (" + event.element() + ")");
+                    System.out.println("Entry added: (" + event.element() + ")" +
+                            " | @ epoch: " + event.element().map_epoch);
+                    event.element().print();
                     break;
                 case REMOVE:
-                    System.out.println("Entry removed: (" + event.element() +")");
+                    System.out.println("Entry removed: (" + event.element() +")" +
+                            " | @ epoch: " + event.element().map_epoch);
+                    event.element().print();
                     break;
             }
         });
 
+        // Create Raft Metadata file tree
+        AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
+        distributed_metadata_tree.addListener(event -> {
+            switch (event.type()) {
+                case UPDATE:
+                    System.out.println("Metadata tree updated: (" + event.newValue() + ")");
+                    event.newValue().print();
+                    break;
+            }
+        });
 
         if (local_id.equals("figo")) {
-            // TODO replace this with loading a config file eventually
-            register_map(distributed_crush_maps, sample_crush_map());
-        }
-
-        // wait for figo to register initial map
-        while(distributed_crush_maps.size() == 0) {
-            try {
-                TimeUnit.SECONDS.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            if (distributed_crush_maps.size() <= 0) {
+                // TODO replace this with loading a config file
+                register_map(distributed_crush_maps, sample_crush_map());
             }
-        }
-
-        Scanner in = new Scanner(System.in);
-
-        while (true) {
-            try {
-                CrushMap shared_crush_map = distributed_crush_maps.get(0);
-                System.out.println("Current map: " + shared_crush_map +
-                        " | @ epoch: " + shared_crush_map.map_epoch);
-                shared_crush_map.get_root().print(0);
-                if (local_id.equals("figo")) {
-                    shared_crush_map.get_root().add(new CrushNode(in.nextInt(), "row", false));
-                    register_map(distributed_crush_maps, shared_crush_map);
+            // TODO replace this with initialize metadata tree from disk
+            if (distributed_metadata_tree.get() == null) {
+                distributed_metadata_tree.set(sample_metadata_tree());
+                // distributed_metadata_tree.set(new MetadataTree());
+            }
+        } else {
+            // wait for figo to register initial map
+            System.out.println("Waiting for distributed primitives initial setup.");
+            while(distributed_crush_maps.size() == 0 && distributed_metadata_tree.get() == null) {
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-                TimeUnit.SECONDS.sleep(1);
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         }
+
+
+        // TODO run if leader and stop if no longer leader
+        ScheduledExecutorService es = Executors.newSingleThreadScheduledExecutor();
+        ScheduledFuture<?>  host_alive_scheduled_future = es.scheduleAtFixedRate(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        // Says "bar" every half second
+                        System.out.println("blin");
+//                        List<CrushNode> hosts = distributed_crush_maps.get(0).get_root().get_children_of_type("osd");
+//                        System.out.println(hosts);
+                    }
+                },
+                0, 2500, TimeUnit.MILLISECONDS);
+
+        host_alive_scheduled_future.cancel(false);
+
     }
+
 
 
     public static void register_map(DistributedList<CrushMap> distributed_crush_maps,
@@ -98,17 +122,8 @@ public class MonitorServer {
     }
 
 
-    public static void register_osd() {
-
-    }
-
-    public static void update_osd() {
-
-    }
-
     public static CrushMap sample_crush_map() {
         CrushMap cluster_map = new CrushMap();
-        Random random = new Random();
 
         CrushNode b101 = new CrushNode(101, "row",false);
         b101.add(new CrushNode(0, "osd", true));
@@ -119,7 +134,6 @@ public class MonitorServer {
         b102.add(new CrushNode(4, "osd", true));
         b102.add(new CrushNode(5, "osd", true));
 
-
         // overload some dudes
         // b001.overloadChildren(b001.get_children().get(0));
         // b001.overloadChildren(b001.get_children().get(2));
@@ -129,8 +143,20 @@ public class MonitorServer {
         cluster_map.get_root().add(b101);
         cluster_map.get_root().add(b102);
 
-        cluster_map.get_root().print(0);
         return cluster_map;
+    }
+
+    public static MetadataTree sample_metadata_tree() {
+        MetadataTree metadata_tree = new MetadataTree();
+        MetadataNode root = metadata_tree.get_root();
+        root.addFile("yodel");
+        root.addFile("lookup");
+        root.addFile("blin");
+        MetadataNode iam = root.addFolder("iam");
+        iam.addFile("blyat");
+        iam.addFile("cyka");
+        root.addFolder("folder");
+        return metadata_tree;
     }
 
     public static void crush_poc() {

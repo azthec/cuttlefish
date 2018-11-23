@@ -45,6 +45,10 @@ public class CrushMap {
         return root;
     }
 
+    public void print() {
+        root.print(0);
+    }
+
 
 
 }

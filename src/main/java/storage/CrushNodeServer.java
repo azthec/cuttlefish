@@ -82,7 +82,8 @@ public class CrushNodeServer {
         @Override
         public void getNode(CrushNodeRequest req, StreamObserver<CrushNodeReply> responseObserver) {
             System.out.println("Running getNodeWithID of class GetNodeGrpcImpl!");
-            CrushNode node = new CrushNode(111, "osd", false);
+            CrushNode node = new CrushNode(111, "row", false);
+            node.add(new CrushNode(112, "osd", true));
             responseObserver.onNext(CrushNodeObjectToCrushNodeReply(node));
             responseObserver.onCompleted();
         }

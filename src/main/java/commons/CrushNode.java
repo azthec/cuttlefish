@@ -98,6 +98,16 @@ public class CrushNode {
         return children;
     }
 
+    public List<CrushNode> get_children_of_type(String type) {
+        List<CrushNode> filtered_children = new ArrayList<>();
+        for (CrushNode child : children) {
+            if (child.type.equals(type))
+                filtered_children.add(child);
+            filtered_children.addAll(child.get_children_of_type(type));
+        }
+        return filtered_children;
+    }
+
     public void print(int depth) {
         if (depth == 0) {
             System.out.println("└── " + this.nodeID);
