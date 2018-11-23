@@ -4,9 +4,9 @@ import commons.CrushNode;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
-import protos.GetCrushNode;
+import protos.CrushNodeRequest;
 import protos.GetNodeGrpc;
-import protos.SendCrushNode;
+import protos.CrushNodeReply;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -59,8 +59,8 @@ public class CrushNodeServer {
     }
 
 
-    static SendCrushNode sendCrushNodify(CrushNode node) {
-        SendCrushNode.Builder builder = SendCrushNode
+    static CrushNodeReply CrushNodeObjectToCrushNodeReply(CrushNode node) {
+        CrushNodeReply.Builder builder = CrushNodeReply
                 .newBuilder()
                 .setNodeID(node.nodeID)
                 .setType(node.type)
@@ -69,9 +69,9 @@ public class CrushNodeServer {
                 .setIsOsd(node.is_osd)
                 .setFailed(node.failed)
                 .setOverloaded(node.overloaded);
-        List<SendCrushNode> children = new ArrayList<>();
+        List<CrushNodeReply> children = new ArrayList<>();
         for( CrushNode child : node.get_children()) {
-            children.add(sendCrushNodify(child));
+            children.add(CrushNodeObjectToCrushNodeReply(child));
         }
         return builder.addAllChildren(children).build();
     }
@@ -80,10 +80,10 @@ public class CrushNodeServer {
     static class GetNodeGrpcImpl extends GetNodeGrpc.GetNodeImplBase {
 
         @Override
-        public void getNodeWithID(GetCrushNode req, StreamObserver<SendCrushNode> responseObserver) {
+        public void getNode(CrushNodeRequest req, StreamObserver<CrushNodeReply> responseObserver) {
             System.out.println("Running getNodeWithID of class GetNodeGrpcImpl!");
             CrushNode node = new CrushNode(111, "osd", false);
-            responseObserver.onNext(sendCrushNodify(node));
+            responseObserver.onNext(CrushNodeObjectToCrushNodeReply(node));
             responseObserver.onCompleted();
         }
 

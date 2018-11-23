@@ -10,15 +10,15 @@ package commons;
 // The greeting service definition.
 service GetNode {
     // Sends a greeting
-    rpc GetNodeWithID (GetCrushNode) returns (SendCrushNode) {}
+    rpc GetNode (CrushNodeRequest) returns (CrushNodeReply) {}
 }
 
 // The request message containing the user's name.
-message GetCrushNode {
+message CrushNodeRequest {
     int32 nodeID = 1;
 }
 
-message SendCrushNode {
+message CrushNodeReply {
     int32 nodeID = 1;
     string type = 2;
     int32 size = 3;
@@ -26,5 +26,5 @@ message SendCrushNode {
     bool is_osd = 5;
     bool failed = 6;
     bool overloaded = 7;
-    repeated SendCrushNode children = 8;
+    repeated CrushNodeReply children = 8;
 }

@@ -3,9 +3,9 @@ package storage;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
-import protos.GetCrushNode;
+import protos.CrushNodeRequest;
 import protos.GetNodeGrpc;
-import protos.SendCrushNode;
+import protos.CrushNodeReply;
 
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -40,22 +40,22 @@ public class CrushNodeClient {
 
     public void greet(String name) {
         logger.info("Will try to greet " + name + " ...");
-        GetCrushNode request = GetCrushNode.newBuilder().setNodeID(123).build();
-        SendCrushNode response;
+        CrushNodeRequest request = CrushNodeRequest.newBuilder().setNodeID(123).build();
+        CrushNodeReply response;
         try {
-            response = blockingStub.getNodeWithID(request);
+            response = blockingStub.getNode(request);
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
             return;
         }
-        logger.info("NodeID: " + response.getNodeID());
-        logger.info("Type: " + response.getType());
-        logger.info("Size: " + response.getSize());
-        logger.info("AliveSize: " + response.getAliveSize());
-        logger.info("IsOsd: " + response.getIsOsd());
-        logger.info("Failed: " + response.getFailed());
-        logger.info("Overloaded: " + response.getOverloaded());
-        logger.info("Children Size: " + response.getChildrenCount());
+        System.out.println("NodeID: " + response.getNodeID());
+        System.out.println("Type: " + response.getType());
+        System.out.println("Size: " + response.getSize());
+        System.out.println("AliveSize: " + response.getAliveSize());
+        System.out.println("IsOsd: " + response.getIsOsd());
+        System.out.println("Failed: " + response.getFailed());
+        System.out.println("Overloaded: " + response.getOverloaded());
+        System.out.println("Children Size: " + response.getChildrenCount());
     }
 
     public static void main(String[] args) throws Exception {
