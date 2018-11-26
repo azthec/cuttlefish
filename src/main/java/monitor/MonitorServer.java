@@ -11,13 +11,18 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 
+import io.atomix.cluster.MemberId;
 import io.atomix.core.Atomix;
 import io.atomix.core.list.DistributedList;
 import io.atomix.core.value.AtomicValue;
+import io.atomix.primitive.partition.PartitionId;
+import io.atomix.protocols.raft.partition.RaftPartition;
+import io.atomix.utils.concurrent.Scheduled;
 import org.apache.commons.lang3.RandomStringUtils;
 
 
 public class MonitorServer {
+
     public static void main(String[] args) {
         run_raft(args);
 //        crush_poc();
@@ -90,23 +95,20 @@ public class MonitorServer {
             }
         }
 
+        // If RAFT leader manage OSD hearbeats, adapts to leader changes automatically
+        ScheduledFuture<?> heartbeat_manager = register_heartbeat_manager(atomix, local_id);
 
-        // TODO run if leader and stop if no longer leader
-        ScheduledExecutorService es = Executors.newSingleThreadScheduledExecutor();
-        ScheduledFuture<?>  host_alive_scheduled_future = es.scheduleAtFixedRate(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        // Says "bar" every half second
-                        System.out.println("blin");
-//                        List<CrushNode> hosts = distributed_crush_maps.get(0).get_root().get_children_of_type("osd");
-//                        System.out.println(hosts);
-                    }
-                },
-                0, 2500, TimeUnit.MILLISECONDS);
 
-        host_alive_scheduled_future.cancel(false);
 
+    }
+
+    public static ScheduledFuture<?> register_heartbeat_manager(Atomix atomix, String local_id) {
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        ScheduledFuture<?> heartbeat_manager =  executorService.scheduleAtFixedRate(
+                new HeartbeatManager(atomix, local_id),
+                0, 5,
+                TimeUnit.SECONDS);
+        return heartbeat_manager;
     }
 
 
