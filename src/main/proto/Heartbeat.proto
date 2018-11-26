@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "protos";
+
+package commons;
+
+// The greeting service definition.
+service GetHeartbeat {
+    // Sends a greeting
+    rpc GetHeartbeat (HeartbeatRequest) returns (HeartbeatReply) {}
+}
+
+// The request message containing the user's name.
+message HeartbeatRequest {
+    bool status = 1;
+}
+
+message HeartbeatReply {
+    bool status = 1;
+    bool overloaded = 2;
+}

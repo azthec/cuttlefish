@@ -38,11 +38,15 @@ public class CrushMap {
 
     public CrushMap() {
         map_epoch = 0;
-        root = new CrushNode(000, "root", false);
+        root = new CrushNode(000, "root", false, null);
     }
 
     public CrushNode get_root() {
         return root;
+    }
+
+    public List<CrushNode> get_nodes_of_type(String type) {
+        return root.get_children_of_type(type);
     }
 
     public void print() {

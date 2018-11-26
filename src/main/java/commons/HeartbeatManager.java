@@ -11,12 +11,14 @@ public class HeartbeatManager implements Runnable {
 
     Atomix atomix;
     String local_id;
+    String pg_name;
     ScheduledExecutorService executorService;
     ScheduledFuture<?> heartbeat;
 
-    public HeartbeatManager(Atomix atomix, String local_id) {
+    public HeartbeatManager(Atomix atomix, String local_id, String pg_name) {
         this.atomix = atomix;
         this.local_id = local_id;
+        this.pg_name = pg_name;
         executorService = Executors.newSingleThreadScheduledExecutor();
         heartbeat = executorService.scheduleAtFixedRate(new Heartbeat(atomix),
                 0, 2500,
@@ -27,7 +29,7 @@ public class HeartbeatManager implements Runnable {
 
     @Override
     public void run() {
-        String leader = atomix.getPartitionService().getPartitionGroup("system").getPartition("1").primary().toString();
+        String leader = AtomixUtils.getRaftLeader(atomix, pg_name);
         // If local server is not the leader and a heartbeat is running, cancel it
         if (!local_id.equals(leader) && !heartbeat.isCancelled()) {
             heartbeat.cancel(false);

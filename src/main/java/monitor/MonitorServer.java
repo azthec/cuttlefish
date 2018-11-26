@@ -11,13 +11,10 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 
-import io.atomix.cluster.MemberId;
 import io.atomix.core.Atomix;
 import io.atomix.core.list.DistributedList;
+import io.atomix.core.map.DistributedMap;
 import io.atomix.core.value.AtomicValue;
-import io.atomix.primitive.partition.PartitionId;
-import io.atomix.protocols.raft.partition.RaftPartition;
-import io.atomix.utils.concurrent.Scheduled;
 import org.apache.commons.lang3.RandomStringUtils;
 
 
@@ -62,6 +59,10 @@ public class MonitorServer {
             }
         });
 
+        // Create Raft OSD contact information
+        DistributedMap<String,ObjectStorageNode> distributed_object_nodes = atomix.getMap("objectnodes");
+        // TODO add listeners later
+
         // Create Raft Metadata file tree
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
         distributed_metadata_tree.addListener(event -> {
@@ -73,10 +74,12 @@ public class MonitorServer {
             }
         });
 
+        Loader loader = new Loader();
         if (local_id.equals("figo")) {
             if (distributed_crush_maps.size() <= 0) {
                 // TODO replace this with loading a config file
-                register_map(distributed_crush_maps, sample_crush_map());
+                register_map(distributed_crush_maps, loader.sample_crush_map());
+                register_object_nodes(distributed_object_nodes, loader.sample_osds());
             }
             // TODO replace this with initialize metadata tree from disk
             if (distributed_metadata_tree.get() == null) {
@@ -96,21 +99,20 @@ public class MonitorServer {
         }
 
         // If RAFT leader manage OSD hearbeats, adapts to leader changes automatically
-        ScheduledFuture<?> heartbeat_manager = register_heartbeat_manager(atomix, local_id);
+        ScheduledFuture<?> heartbeat_manager = register_heartbeat_manager(atomix, local_id, "system");
 
 
 
     }
 
-    public static ScheduledFuture<?> register_heartbeat_manager(Atomix atomix, String local_id) {
+    public static ScheduledFuture<?> register_heartbeat_manager(Atomix atomix, String local_id, String pg_name) {
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         ScheduledFuture<?> heartbeat_manager =  executorService.scheduleAtFixedRate(
-                new HeartbeatManager(atomix, local_id),
+                new HeartbeatManager(atomix, local_id, pg_name),
                 0, 5,
                 TimeUnit.SECONDS);
         return heartbeat_manager;
     }
-
 
 
     public static void register_map(DistributedList<CrushMap> distributed_crush_maps,
@@ -124,29 +126,13 @@ public class MonitorServer {
     }
 
 
-    public static CrushMap sample_crush_map() {
-        CrushMap cluster_map = new CrushMap();
-
-        CrushNode b101 = new CrushNode(101, "row",false);
-        b101.add(new CrushNode(0, "osd", true));
-        b101.add(new CrushNode(1, "osd", true));
-        b101.add(new CrushNode(2, "osd", true));
-        CrushNode b102 = new CrushNode(102, "row", false);
-        b102.add(new CrushNode(3, "osd", true));
-        b102.add(new CrushNode(4, "osd", true));
-        b102.add(new CrushNode(5, "osd", true));
-
-        // overload some dudes
-        // b001.overloadChildren(b001.get_children().get(0));
-        // b001.overloadChildren(b001.get_children().get(2));
-        // b001.overloadChildren(b010.get_children().get(3));
-        // b111.failChildren(b111.get_children().get(2));
-
-        cluster_map.get_root().add(b101);
-        cluster_map.get_root().add(b102);
-
-        return cluster_map;
+    public static void register_object_nodes(DistributedMap<String,ObjectStorageNode> distributed_object_nodes,
+                                             List<ObjectStorageNode> object_nodes) {
+        for (ObjectStorageNode node : object_nodes) {
+            distributed_object_nodes.put(Integer.toString(node.id), node);
+        }
     }
+
 
     public static MetadataTree sample_metadata_tree() {
         MetadataTree metadata_tree = new MetadataTree();
@@ -162,8 +148,8 @@ public class MonitorServer {
     }
 
     public static void crush_poc() {
-
-        CrushMap cluster_map = sample_crush_map();
+        Loader loader = new Loader();
+        CrushMap cluster_map = loader.sample_crush_map();
 
         Crush crush = new Crush();
 

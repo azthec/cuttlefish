@@ -15,10 +15,11 @@ public class CrushNode {
     public boolean failed;
     public boolean overloaded;
 
+    public CrushNode parent;
     // for now buckets will only contain devices
     private List<CrushNode> children;
 
-    public CrushNode(int nodeID, String type, boolean is_osd) {
+    public CrushNode(int nodeID, String type, boolean is_osd, CrushNode parent) {
         this.nodeID = nodeID;
         this.type = type;
         this.is_osd = is_osd;
@@ -30,6 +31,8 @@ public class CrushNode {
 
         this.failed = false;
         this.overloaded = false;
+
+        this.parent = parent;
     }
 
     public void add(CrushNode node) {

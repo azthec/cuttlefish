@@ -43,4 +43,13 @@ public class AtomixUtils {
             return atomix;
         });
     }
+
+    public static String getRaftLeader(Atomix atomix, String partition_group_name ) {
+        return atomix
+                .getPartitionService()
+                .getPartitionGroup(partition_group_name)
+                .getPartition("1")
+                .primary()
+                .toString();
+    }
 }
