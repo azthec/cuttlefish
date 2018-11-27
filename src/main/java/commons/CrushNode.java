@@ -57,6 +57,14 @@ public class CrushNode {
         return failed;
     }
 
+    public void fail() {
+        this.parent.failChildren(this);
+    }
+
+    public void unfail() {
+        this.parent.unfailChildren(this);
+    }
+
     public void failChildren(CrushNode node) {
         if (!node.isFailed() && !node.isOverloaded()) {
             node.failed = true;
@@ -77,6 +85,14 @@ public class CrushNode {
 
     public boolean isOverloaded() {
         return overloaded;
+    }
+
+    public void overload() {
+        this.parent.overloadChildren(this);
+    }
+
+    public void unoverloadChildren() {
+        this.parent.unfailChildren(this);
     }
 
     public void overloadChildren(CrushNode node) {

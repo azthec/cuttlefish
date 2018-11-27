@@ -17,6 +17,7 @@ package commons;
  * devices (CRUSH).
  */
 
+import java.util.ArrayList;
 import java.util.List;
 
 /*
@@ -43,6 +44,14 @@ public class CrushMap {
 
     public CrushNode get_root() {
         return root;
+    }
+
+    public CrushNode get_node_with_id(int id) {
+        for (CrushNode child : root.get_children()) {
+            if (child.nodeID == id)
+                return child;
+        }
+        return null;
     }
 
     public List<CrushNode> get_nodes_of_type(String type) {
