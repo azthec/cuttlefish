@@ -1,26 +1,44 @@
 package demos;
 
-import commons.CrushMap;
-import commons.CrushNode;
+import app.FileChunkClient;
+import protos.ChunkOid;
+
+import java.io.UnsupportedEncodingException;
 
 public class Main {
     public static void main(String[] args) {
-//        CrushMap cluster_map = new CrushMap();
-//
-//        CrushNode b101 = new CrushNode(101, "row",false);
-//        b101.add(new CrushNode(0, "osd", true));
-//        b101.add(new CrushNode(1, "osd", true));
-//        b101.add(new CrushNode(2, "osd", true));
-//        CrushNode b102 = new CrushNode(102, "row", false);
-//        b102.add(new CrushNode(3, "osd", true));
-//        b102.add(new CrushNode(4, "osd", true));
-//        CrushNode c5 = new CrushNode(5, "osd", false);
-//        b102.add(c5);
-//        // TODO add more children osd to c5
-//        c5.add(new CrushNode(6,"osd", true));
-//        cluster_map.get_root().add(b101);
-//        cluster_map.get_root().add(b102);
-//        System.out.println(cluster_map.get_root().get_children_of_type("osd"));
-//        cluster_map.print();
+        getChunk("localhost", 50420);
+    }
+
+    public static void getChunk(String ip, int port) {
+        FileChunkClient client = new FileChunkClient(ip, port);
+
+
+        System.out.println("Getting!");
+        ChunkOid request = ChunkOid
+                .newBuilder()
+                .setOid("1337")
+                .build();
+        client.getChunk(request);
+
+        System.out.println("Posting!");
+        byte[] post_it = new byte[0];
+        try {
+            post_it = "1234567890".getBytes("UTF8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        try {
+            client.postChunk(post_it, "1337");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            client.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
     }
 }

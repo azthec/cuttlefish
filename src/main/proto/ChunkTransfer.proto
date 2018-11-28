@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "protos";
+
+package commons;
+
+
+service ChunkTransfer {
+    rpc PostChunk (stream ChunkData) returns (ChunkPostReply) {}
+    rpc GetChunk (ChunkOid) returns (stream ChunkData) {}
+}
+
+message ChunkOid {
+    string oid = 1;
+}
+
+message ChunkData {
+    string oid = 1;
+    bytes data = 2;
+}
+
+message ChunkPostReply {
+    bool state = 1;
+}
+

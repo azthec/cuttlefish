@@ -39,7 +39,8 @@ public class CrushNode {
         if (!is_osd) {
             children.add(node);
             size++;
-            alive_size++;
+            if (!node.isFailed() && !node.isOverloaded())
+                alive_size++;
         } else {
             throw new IllegalArgumentException("Can't add node to leaf buckets.");
         }
@@ -48,7 +49,7 @@ public class CrushNode {
     public void remove(CrushNode node) {
         children.remove(node);
         size--;
-        if (!node.isFailed()) {
+        if (!node.isFailed() || !node.isOverloaded()) {
             alive_size--;
         }
     }

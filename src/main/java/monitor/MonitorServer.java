@@ -98,8 +98,10 @@ public class MonitorServer {
             }
         }
 
-        // If RAFT leader manage OSD hearbeats, adapts to leader changes automatically
-        ScheduledFuture<?> heartbeat_manager = register_heartbeat_manager(atomix, local_id, "system");
+        // TODO uncomment this when implementing OSD failure tolerance
+        // If RAFT leader manage OSD hearbeats and update CrushMap
+        // adapts to RAFT leader changes automatically
+        // ScheduledFuture<?> heartbeat_manager = register_heartbeat_manager(atomix, local_id, "system");
 
 
 
