@@ -77,7 +77,7 @@ public class FileChunkClient {
         return null;
     }
 
-    public boolean postChunk(byte[] chunks, String oid) throws InterruptedException {
+    public boolean postChunk(byte[] chunks, String oid) {
         ChunkPostReply response;
 
         try {

@@ -27,6 +27,7 @@ dependencies {
 
     // Common libraries
     compile group: 'commons-codec', name: 'commons-codec', version: '1.9'
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
 
     // json
     compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1'

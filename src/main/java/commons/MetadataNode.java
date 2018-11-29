@@ -12,6 +12,7 @@ public class MetadataNode implements Comparable<MetadataNode> {
     private String name;
     private String path;
     private boolean type;
+    private int version;
     private List<MetadataNode> children;
     private List<String> objects;
 
@@ -37,6 +38,14 @@ public class MetadataNode implements Comparable<MetadataNode> {
 
     public String getPath() {
         return path;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
     }
 
     public List<MetadataNode> getChildren() {
@@ -140,5 +149,4 @@ public class MetadataNode implements Comparable<MetadataNode> {
             }
         }
     }
-
 }

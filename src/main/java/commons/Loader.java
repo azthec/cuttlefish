@@ -1,6 +1,7 @@
 package commons;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class Loader {
@@ -43,6 +44,22 @@ public class Loader {
         osds.add(new ObjectStorageNode(4, "localhost", 50424));
         osds.add(new ObjectStorageNode(5, "localhost", 50425));
         return osds;
+    }
+
+    public HashMap<String, ObjectStorageNode> get_osd_map() {
+        HashMap<String, ObjectStorageNode> hashMap = new HashMap<>();
+        for (ObjectStorageNode osd : sample_osds()) {
+            hashMap.put("" + osd.id, osd);
+        }
+        return hashMap;
+    }
+
+    public ObjectStorageNode get_osd_with_id(int id) {
+        for (ObjectStorageNode osd : sample_osds()) {
+            if (osd.id == id)
+                return osd;
+        }
+        return null;
     }
 
     public MetadataTree sample_metadata_tree() {

@@ -29,6 +29,7 @@ import java.util.List;
  */
 public class CrushMap {
     public int map_epoch;
+    public int total_pgs;
     public CrushNode root;
     // TODO CRUSH hierarchy
     // TODO CRUSH placement rules
@@ -39,6 +40,7 @@ public class CrushMap {
 
     public CrushMap() {
         map_epoch = 0;
+        total_pgs = 255;
         root = new CrushNode(000, "root", false, null);
     }
 

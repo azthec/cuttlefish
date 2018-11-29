@@ -1,21 +1,20 @@
 package storage;
 
 import com.google.protobuf.ByteString;
-import commons.FileUtils;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
-import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.io.FileUtils;
 import protos.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.logging.Logger;
 
-import static commons.FileUtils.read_file_to_byte_array;
 
 
 public class GRPCServer {
-    // TODO eventually read from config, in megabytes
+    // TODO eventually read these settings from config
     public static final int CHUNK_SIZE = 1024 * 1024 * 2; // 2 MB
     public static final String DATAFOLDER = "data/";
 
@@ -80,7 +79,6 @@ public class GRPCServer {
 
     static class ChunkTransferGrpcImpl extends ChunkTransferGrpc.ChunkTransferImplBase {
 
-        // see https://grpc.io/docs/tutorials/basic/java.html#server-side-streaming-rpc
         @Override
         public void getChunk(ChunkOid request, StreamObserver<ChunkData> responseObserver) {
             // TODO test gRPC chunks
@@ -88,7 +86,7 @@ public class GRPCServer {
             System.out.println("Serving chunk!");
             try {
                 System.out.println("Reading file!");
-                data = read_file_to_byte_array(DATAFOLDER + request.getOid());
+                data = FileUtils.readFileToByteArray(new File(DATAFOLDER + request.getOid()));
                 responseObserver.onNext(ChunkData
                         .newBuilder()
                         .setOid(request.getOid())
@@ -96,9 +94,8 @@ public class GRPCServer {
                         .build());
             } catch (IOException e) {
                 e.printStackTrace();
+                responseObserver.onNext(null);
             }
-
-
             responseObserver.onCompleted();
         }
 
@@ -106,10 +103,17 @@ public class GRPCServer {
         public void postChunk(ChunkData request, StreamObserver<ChunkPostReply> responseObserver) {
             String oid = request.getOid();
             byte[] data = request.getData().toByteArray();
-            FileUtils.write_byte_array_to_file(data, DATAFOLDER + oid);
-            responseObserver.onNext(ChunkPostReply.newBuilder()
-                    .setState(true)
-                    .build());
+            try {
+                FileUtils.writeByteArrayToFile(new File(DATAFOLDER + oid), data);
+                responseObserver.onNext(ChunkPostReply.newBuilder()
+                        .setState(true)
+                        .build());
+            } catch (IOException e) {
+                e.printStackTrace();
+                responseObserver.onNext(ChunkPostReply.newBuilder()
+                        .setState(false)
+                        .build());
+            }
             responseObserver.onCompleted();
         }
 
