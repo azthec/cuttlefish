@@ -1,5 +1,11 @@
 package app;
 
+import commons.AtomixUtils;
+import commons.Loader;
+import commons.MetadataNode;
+import commons.MetadataTree;
+import io.atomix.core.Atomix;
+import io.atomix.core.value.AtomicValue;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -7,17 +13,61 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.io.*;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @Path("/api")
 public class EntryPoint {
 
     JSONParser parser = new JSONParser();
     private File baseDir = new File(System.getProperty("user.dir"));
+    Loader loader;
+    List<String> servers;
+    AtomixUtils atomixUtils;
+    Atomix atomix;
+    MetadataTree distributed_metadata_tree;
+
+    /**
+     * Method that prevents vars from being null.
+     * Also acts as 1st time setup script.
+     */
+    private void checkVars(){
+
+        if(loader == null){
+            loader = new Loader();
+        }
+
+        if(servers == null){
+            System.out.println("Populating servers' name list...");
+            System.out.println("Populated servers' name list.");
+        }
+
+        if(atomixUtils == null){
+            System.out.println("AtomixUtils is null, fixing...");
+            System.out.println("Fixed Atomix Utils.");
+        }
+
+        if(atomix == null){
+            System.out.println("Atomix is null, fixing...");
+            System.out.println("Fixed Atomix.");
+        }
+
+        if(distributed_metadata_tree == null){
+            System.out.println("Fetching distributed metadata tree...");
+            distributed_metadata_tree = loader.sample_metadata_tree();
+            System.out.println("Got distributed metadata tree.");
+        }
+
+
+    }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
     public String process(InputStream incommingData) {
+
+        checkVars(); // don't remove this, edit it!
 
         StringBuilder stringBuilder = new StringBuilder();
         JSONObject jsonObject;
@@ -45,21 +95,11 @@ public class EntryPoint {
     /**
      * This method executes the commands requested.
      *
-     * ATTENCHONE:
+     * Danger:
      * Allways test the commands inside the "testfolder" directory, so you don't delete important files by mistake.
      *
-     * @param cmd is the command to execute, passed as a String.
+     * @param cmd is the command to execute, passed as a String (which is then split & processed).
      * @param currPath is the current path of the client.
-     *
-     *                The string is then split.
-     *
-     *                 Following that we analyse the first word in the command, as most cases benefit from this.
-     *
-     *                 If the first word is recognized as an implemented function, it is run, taking in consideration
-     *            the remaining parameters.
-     *
-     *                 If that fails, we enter a default case, where commands such as "<" and ">" can be detected,
-     *            as well as bad/unimplemmented commands.
      *
      * @return the result of that command, in String form.
      */
@@ -172,10 +212,29 @@ public class EntryPoint {
 
     /**
      * Implementation of the ls command
+     * @param currPath is the current absolutePath that the client encounters itself in.
      * @return the simplest version of ls (argumentless)
      */
     private String ls(String currPath){
         String res = "";
+        List<String> pathSplit = Arrays.asList(currPath.split("/"));
+        MetadataNode node = distributed_metadata_tree.get_root();
+        // go down the tree
+        while(!pathSplit.isEmpty()){
+            String next = pathSplit.remove(0);
+            node = node.get(next);
+        }
+        List<MetadataNode> children = node.getChildren();
+        for(MetadataNode child: children){
+            if(child.isFolder()){
+                res += AppMisc.ANSI_BLUE + child.getName() + "/ " + AppMisc.ANSI_RESET ;
+            } else{
+                res += child.getName()+" ";
+            }
+        }
+
+        /*
+        antique version
         File currDir = new File(currPath);
         for(File file:currDir.listFiles()){
             if(file.isDirectory()){
@@ -184,8 +243,10 @@ public class EntryPoint {
                 res += file.getName()+" \n";
             }
         }
+        */
         return res;
     }
+
 
     /**
      * Implementation of pwd command
@@ -292,26 +353,3 @@ public class EntryPoint {
         return res;
     }
 }
-
-
-
-    //https://stackoverflow.com/questions/33083397/filtering-upwards-path-traversal-in-java-or-scala
-  /*  public java.nio.file.Path resolvePath(final java.nio.file.Path baseDirPath, final java.nio.file.Path userPath) {
-
-        if (!baseDirPath.isAbsolute())
-            throw new IllegalArgumentException("Base path must be absolute");
-
-        if (userPath.isAbsolute())
-            throw new IllegalArgumentException("User path must be relative");
-
-        final java.nio.file.Path resolvedPath = baseDirPath.resolve(userPath).normalize();
-
-        if (!resolvedPath.startsWith(baseDirPath))
-            throw new IllegalArgumentException("User path escapes the base path");
-
-        return resolvedPath;
-    }*/
-
-
-
-

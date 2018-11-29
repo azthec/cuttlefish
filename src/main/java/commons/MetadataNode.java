@@ -52,6 +52,8 @@ public class MetadataNode implements Comparable<MetadataNode> {
         return children;
     }
 
+
+
     public List<String> getObjects() {
         return objects;
     }
