@@ -83,7 +83,7 @@ public class MonitorServer {
             }
             // TODO replace this with initialize metadata tree from disk
             if (distributed_metadata_tree.get() == null) {
-                distributed_metadata_tree.set(sample_metadata_tree());
+                distributed_metadata_tree.set(loader.sample_metadata_tree());
                 // distributed_metadata_tree.set(new MetadataTree());
             }
         } else {
@@ -135,19 +135,6 @@ public class MonitorServer {
         }
     }
 
-
-    public static MetadataTree sample_metadata_tree() {
-        MetadataTree metadata_tree = new MetadataTree();
-        MetadataNode root = metadata_tree.get_root();
-        root.addFile("yodel");
-        root.addFile("lookup");
-        root.addFile("blin");
-        MetadataNode iam = root.addFolder("iam");
-        iam.addFile("blyat");
-        iam.addFile("cyka");
-        root.addFolder("folder");
-        return metadata_tree;
-    }
 
     public static void crush_poc() {
         Loader loader = new Loader();

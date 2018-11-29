@@ -23,10 +23,9 @@ public class Loader {
         b102.add(new CrushNode(5, "osd", true, b102));
 
         // overload some dudes
-        // b001.overloadChildren(b001.get_children().get(0));
-        // b001.overloadChildren(b001.get_children().get(2));
-        // b001.overloadChildren(b010.get_children().get(3));
-        // b111.failChildren(b111.get_children().get(2));
+//        b101.get_children().get(0).fail();
+//        b101.get_children().get(2).fail();
+//        b102.get_children().get(2).overload();
 
         cluster_map.get_root().add(b101);
         cluster_map.get_root().add(b102);
@@ -44,5 +43,18 @@ public class Loader {
         osds.add(new ObjectStorageNode(4, "localhost", 50424));
         osds.add(new ObjectStorageNode(5, "localhost", 50425));
         return osds;
+    }
+
+    public MetadataTree sample_metadata_tree() {
+        MetadataTree metadata_tree = new MetadataTree();
+        MetadataNode root = metadata_tree.get_root();
+        root.addFile("yodel");
+        root.addFile("lookup");
+        root.addFile("blin");
+        MetadataNode iam = root.addFolder("iam");
+        iam.addFile("blyat");
+        iam.addFile("cyka");
+        root.addFolder("folder");
+        return metadata_tree;
     }
 }

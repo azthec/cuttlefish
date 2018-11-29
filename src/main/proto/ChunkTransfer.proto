@@ -7,8 +7,8 @@ package commons;
 
 
 service ChunkTransfer {
-    rpc PostChunk (stream ChunkData) returns (ChunkPostReply) {}
-    rpc GetChunk (ChunkOid) returns (stream ChunkData) {}
+    rpc PostChunk (ChunkData) returns (ChunkPostReply) {}
+    rpc GetChunk (ChunkOid) returns (ChunkData) {}
 }
 
 message ChunkOid {

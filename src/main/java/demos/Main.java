@@ -14,31 +14,23 @@ public class Main {
         FileChunkClient client = new FileChunkClient(ip, port);
 
 
-        System.out.println("Getting!");
-        ChunkOid request = ChunkOid
-                .newBuilder()
-                .setOid("1337")
-                .build();
-        client.getChunk(request);
-
         System.out.println("Posting!");
         byte[] post_it = new byte[0];
+
         try {
             post_it = "1234567890".getBytes("UTF8");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+
         try {
             client.postChunk(post_it, "1337");
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
-        try {
-            client.shutdown();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        System.out.println("Getting!");
+        client.getChunk("1337");
 
     }
 }

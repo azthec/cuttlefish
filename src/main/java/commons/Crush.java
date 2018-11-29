@@ -1,7 +1,6 @@
 package commons;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.RandomStringUtils;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -38,7 +37,7 @@ public class Crush {
                     do {
                         // replica rank: replica
                         r_line = r + failures;
-                        // replica rank: parity
+                        // TODO implement replica rank: parity
                         // r_line = r + replica_failures * n;
                         int selected_osd = c(r_line, oid_bint, b.alive_size);
                         o = get_nth_alive_osd(b, selected_osd);

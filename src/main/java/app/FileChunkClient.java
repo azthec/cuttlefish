@@ -59,19 +59,17 @@ public class FileChunkClient {
      */
 
     // returns byte array of data
-    public byte[] getChunk(ChunkOid request) {
-        Iterator<ChunkData> response;
+    public byte[] getChunk(String oid) {
+        ChunkOid request = ChunkOid
+                .newBuilder()
+                .setOid(oid)
+                .build();
+        ChunkData response;
         byte[] data = {};
 
         try {
             response = blockingStub.getChunk(request);
-            for (int i = 1; response.hasNext(); i++) {
-                ChunkData chunk = response.next();
-                data = ArrayUtils.addAll(data, chunk.getData().toByteArray());
-                System.out.println(chunk.getData());
-            }
-
-            return data;
+            return response.getData().toByteArray();
 
         } catch (StatusRuntimeException e) {
             System.out.println(e.getStatus());
@@ -79,47 +77,20 @@ public class FileChunkClient {
         return null;
     }
 
-    public void postChunk(byte[] chunks, String oid) throws InterruptedException {
-        List<ChunkPostReply> values = new ArrayList<>();
-
-        StreamObserver<ChunkPostReply> responseObserver = new StreamObserver<ChunkPostReply>() {
-            @Override
-            public void onNext(ChunkPostReply value) {
-                System.out.println(value);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-
-            }
-
-            @Override
-            public void onCompleted() {
-            }
-        };
-
-
-        StreamObserver<ChunkData> requestObserver = asyncStub.postChunk(responseObserver);
+    public boolean postChunk(byte[] chunks, String oid) throws InterruptedException {
+        ChunkPostReply response;
 
         try {
-            byte[][] chunks_matrix = splitArray(chunks, 2);
-            System.out.println("Number of chunks: " + chunks_matrix.length);
-                for (byte[] chunk : chunks_matrix) {
-                    ChunkData data = ChunkData.newBuilder()
-                            .setData(ByteString.copyFrom(chunk))
-                            .setOid(oid)
-                            .build();
-                    System.out.println(data);
-                    requestObserver.onNext(data);
-                }
+            response = blockingStub.postChunk(ChunkData.newBuilder()
+                    .setOid(oid)
+                    .setData(ByteString.copyFrom(chunks))
+                    .build());
+            return response.getState();
 
-        } catch (RuntimeException e) {
-            // Cancel RPC
-            requestObserver.onError(e);
-            throw e;
+        } catch (StatusRuntimeException e) {
+            System.out.println(e.getStatus());
         }
-        // Mark the end of requests
-        requestObserver.onCompleted();
 
+        return false;
     }
 }

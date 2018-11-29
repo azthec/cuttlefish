@@ -66,7 +66,7 @@ public class CrushNode {
         this.parent.unfailChildren(this);
     }
 
-    public void failChildren(CrushNode node) {
+    private void failChildren(CrushNode node) {
         if (!node.isFailed() && !node.isOverloaded()) {
             node.failed = true;
             alive_size--;
@@ -75,7 +75,7 @@ public class CrushNode {
         }
     }
 
-    public void unfailChildren(CrushNode node) {
+    private void unfailChildren(CrushNode node) {
         if (node.isFailed() && !node.isOverloaded()) {
             node.failed = false;
             alive_size++;

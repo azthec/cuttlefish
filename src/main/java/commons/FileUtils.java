@@ -1,10 +1,9 @@
 package commons;
 
 import java.io.*;
-import java.nio.file.Files;
 
 public class FileUtils {
-    static int sizeOfFiles = 1024 * 1024 * 10;// 10MB
+    static int sizeOfFiles = 1024 * 1024 * 2; // 2MB
 
     // TODO swap two files atomically
 

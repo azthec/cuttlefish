@@ -1,21 +1,14 @@
 package storage;
 
 import com.google.protobuf.ByteString;
-import commons.CrushNode;
 import commons.FileUtils;
-import commons.Heartbeat;
-import io.atomix.protocols.raft.protocol.HeartbeatResponse;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.lang3.ArrayUtils;
-import org.eclipse.jetty.util.ArrayUtil;
 import protos.*;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static commons.FileUtils.read_file_to_byte_array;
@@ -23,8 +16,8 @@ import static commons.FileUtils.read_file_to_byte_array;
 
 public class GRPCServer {
     // TODO eventually read from config, in megabytes
-    // 1024 * 1024 * 10
-    public static final int CHUNK_SIZE = 10;
+    public static final int CHUNK_SIZE = 1024 * 1024 * 2; // 2 MB
+    public static final String DATAFOLDER = "data/";
 
     private static final Logger logger = Logger.getLogger(GRPCServer.class.getName());
 
@@ -83,7 +76,6 @@ public class GRPCServer {
             );
             responseObserver.onCompleted();
         }
-
     }
 
     static class ChunkTransferGrpcImpl extends ChunkTransferGrpc.ChunkTransferImplBase {
@@ -92,62 +84,33 @@ public class GRPCServer {
         @Override
         public void getChunk(ChunkOid request, StreamObserver<ChunkData> responseObserver) {
             // TODO test gRPC chunks
-            // returning hardcoded list for tests
+            byte[] data;
             System.out.println("Serving chunk!");
-//            List<ChunkData> chunks = new ArrayList<>();
-//            chunks.add(ChunkData
-//                    .newBuilder()
-//                    .setOid("123")
-//                    .setData(ByteString.copyFromUtf8("1337"))
-//            .build());
-//            chunks.add(ChunkData
-//                    .newBuilder()
-//                    .setOid("3456")
-//                    .setData(ByteString.copyFromUtf8("7331"))
-//                    .build());
-//            for (ChunkData chunk : chunks) {
-//                    responseObserver.onNext(chunk);
-//            }
             try {
                 System.out.println("Reading file!");
-                System.out.println(new String(read_file_to_byte_array(request.getOid())));
+                data = read_file_to_byte_array(DATAFOLDER + request.getOid());
+                responseObserver.onNext(ChunkData
+                        .newBuilder()
+                        .setOid(request.getOid())
+                        .setData(ByteString.copyFrom(data))
+                        .build());
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
+
             responseObserver.onCompleted();
         }
 
-        // see https://grpc.io/docs/tutorials/basic/java.html#client-side-streaming-rpc
         @Override
-        public StreamObserver<ChunkData> postChunk(StreamObserver<ChunkPostReply> responseObserver) {
-            System.out.println("Receiving chunk!");
-            return new StreamObserver<ChunkData>() {
-                private byte[] data = {};
-                String oid;
-
-                @Override
-                public void onNext(ChunkData chunk) {
-                    System.out.println("appending chunk!" + chunk);
-                    oid = chunk.getOid();
-                    data = ArrayUtils.addAll(data, chunk.getData().toByteArray());
-                }
-
-                @Override
-                public void onError(Throwable t) {
-                    responseObserver.onError(t);
-                }
-
-                @Override
-                public void onCompleted() {
-                    System.out.println("Length of data: " + data.length);
-                    // Once we received everything we save it to a file named chunk.oid
-                    FileUtils.write_byte_array_to_file(data, oid);
-                    responseObserver.onNext(ChunkPostReply.newBuilder()
-                            .setState(true)
-                            .build());
-                }
-            };
+        public void postChunk(ChunkData request, StreamObserver<ChunkPostReply> responseObserver) {
+            String oid = request.getOid();
+            byte[] data = request.getData().toByteArray();
+            FileUtils.write_byte_array_to_file(data, DATAFOLDER + oid);
+            responseObserver.onNext(ChunkPostReply.newBuilder()
+                    .setState(true)
+                    .build());
+            responseObserver.onCompleted();
         }
 
     }
