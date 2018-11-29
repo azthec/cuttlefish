@@ -9,7 +9,8 @@ import java.util.Scanner;
 
 public class ShellClient {
 
-    private static File currDir = new File(System.getProperty("user.dir"));
+    private static File currDir = new File(System.getProperty("user.dir")); // remove this later
+    private static String currDirectory = "/"; // default value.
 
     private static void updateCurrDir(String s){
         if(s.split(" ")[0].equals("ERROR")){
@@ -35,7 +36,8 @@ public class ShellClient {
         try {
 
             JSONObject object = new JSONObject();
-            object.put("currPath",currDir.getPath());
+            //object.put("currPath",currDir.getPath());
+            object.put("currPath", currDirectory);
             object.put("cmd",cmd);
             String jsonString = object.toString();
 
