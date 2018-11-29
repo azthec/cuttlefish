@@ -1,5 +1,10 @@
 package app;
 
+import commons.AtomixUtils;
+import commons.Loader;
+import commons.MetadataTree;
+import io.atomix.core.Atomix;
+import io.atomix.core.value.AtomicValue;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -7,12 +12,48 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.io.*;
 import java.net.URLDecoder;
+import java.util.List;
 
 @Path("/api")
 public class EntryPoint {
 
     JSONParser parser = new JSONParser();
     private File baseDir = new File(System.getProperty("user.dir"));
+    Loader loader;
+    List<String> servers;
+    AtomixUtils atomixUtils;
+    Atomix atomix;
+    MetadataTree distributed_metadata_tree;
+
+    private void checkVars(){
+
+        if(loader == null){
+            loader = new Loader();
+        }
+
+        if(servers == null){
+            System.out.println("Populating servers' name list...");
+            System.out.println("Populated servers' name list.");
+        }
+
+        if(atomixUtils == null){
+            System.out.println("AtomixUtils is null, fixing...");
+            System.out.println("Fixed Atomix Utils.");
+        }
+
+        if(atomix == null){
+            System.out.println("Atomix is null, fixing...");
+            System.out.println("Fixed Atomix.");
+        }
+
+        if(distributed_metadata_tree == null){
+            System.out.println("Fetching distributed metadata tree...");
+            distributed_metadata_tree = loader.sample_metadata_tree();
+            System.out.println("Got distributed metadata tree.");
+        }
+
+
+    }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -292,26 +333,3 @@ public class EntryPoint {
         return res;
     }
 }
-
-
-
-    //https://stackoverflow.com/questions/33083397/filtering-upwards-path-traversal-in-java-or-scala
-  /*  public java.nio.file.Path resolvePath(final java.nio.file.Path baseDirPath, final java.nio.file.Path userPath) {
-
-        if (!baseDirPath.isAbsolute())
-            throw new IllegalArgumentException("Base path must be absolute");
-
-        if (userPath.isAbsolute())
-            throw new IllegalArgumentException("User path must be relative");
-
-        final java.nio.file.Path resolvedPath = baseDirPath.resolve(userPath).normalize();
-
-        if (!resolvedPath.startsWith(baseDirPath))
-            throw new IllegalArgumentException("User path escapes the base path");
-
-        return resolvedPath;
-    }*/
-
-
-
-
