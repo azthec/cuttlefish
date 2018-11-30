@@ -1,24 +1,17 @@
-package app;
+package commons;
 
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
-import io.grpc.stub.StreamObserver;
-import org.apache.commons.lang3.ArrayUtils;
 import protos.ChunkData;
 import protos.ChunkOid;
 import protos.ChunkPostReply;
 import protos.ChunkTransferGrpc;
 
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-
-import static commons.Utils.splitArray;
 
 
 public class FileChunkClient {

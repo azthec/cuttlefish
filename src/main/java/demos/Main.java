@@ -1,6 +1,6 @@
 package demos;
 
-import app.FileChunkClient;
+import commons.FileChunkClient;
 import commons.*;
 
 import java.nio.charset.StandardCharsets;
@@ -16,8 +16,8 @@ public class Main {
         Loader loader = new Loader();
         CrushMap cluster_map = loader.sample_crush_map();
         Crush crush = new Crush();
-        String file_name = "1337";
-        String data = "1234567890";
+        String file_name = "passwd";
+        String data = "topsecret_passwordNSAnosee";
         byte[] data_bytes = data.getBytes(StandardCharsets.UTF_8);
 
         int pg = Crush.get_pg_id(file_name, cluster_map.total_pgs);
@@ -30,17 +30,17 @@ public class Main {
         HashMap<String, ObjectStorageNode> hashMap = loader.get_osd_map();
         ObjectStorageNode primary = hashMap.get(selected_osds.get(0).nodeID + "");
 
-        test_object_grpc(primary.ip, primary.port);
+        test_object_grpc(primary.ip, primary.port, file_name, data);
     }
 
-    public static void test_object_grpc(String ip, int port) {
-        String file_name = "1337";
-        String data = "1234567890";
+    public static void test_object_grpc(String ip, int port, String file_name, String data) {
+//        String file_name = "1337";
+//        String data = "1234567890";
         byte[] data_bytes = data.getBytes(StandardCharsets.UTF_8);
         FileChunkClient client = new FileChunkClient(ip, port);
 
         System.out.println("Getting file with ID: " + file_name);
-        byte[] get_result = client.getChunk("1337");
+        byte[] get_result = client.getChunk(file_name);
         if (get_result.length > 0)
             System.out.println("File getting returned: " + new String(get_result, StandardCharsets.UTF_8));
         else
@@ -48,11 +48,11 @@ public class Main {
 
 
         System.out.println("Posting file: " + file_name + " | with data: " + data);
-        boolean post_result = client.postChunk(data_bytes, "1337");
+        boolean post_result = client.postChunk(data_bytes, file_name);
         System.out.println("File posting returned: " + post_result);
 
         System.out.println("Getting file with ID: " + file_name);
-        get_result = client.getChunk("1337");
+        get_result = client.getChunk(file_name);
         if (get_result.length > 0)
             System.out.println("File getting returned: " + new String(get_result, StandardCharsets.UTF_8));
         else
