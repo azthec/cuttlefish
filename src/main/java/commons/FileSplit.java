@@ -1,5 +1,7 @@
 package commons;
 
+import protos.ChunkData;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.security.MessageDigest;
@@ -20,6 +22,7 @@ class FileSplit {
         }
         return digest.digest();
     }
+
 
 
     public static void splitFile(File f) throws IOException {
@@ -46,6 +49,31 @@ class FileSplit {
             }
         }
     }
+
+    /**
+     * TODO review this method
+     * Chunk merging to form a file
+     * @param chunks the list of chunks, assumed ordered.
+     * @param targetFile the file where we write to.
+     */
+    public static void mergeChunks(List<ChunkData> chunks, File targetFile){
+        String dataString = "";
+        for(ChunkData chunk: chunks){
+            dataString += chunk.getData();
+        }
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(targetFile.getName(), "UTF-8");
+            writer.println(dataString);
+            writer.flush();
+            writer.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public static void mergeFiles(List<File> files, File into)
             throws IOException {

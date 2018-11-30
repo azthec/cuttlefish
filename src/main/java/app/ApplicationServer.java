@@ -33,16 +33,19 @@ public class ApplicationServer {
 
         if(servers == null){
             System.out.println("Populating servers' name list...");
+            servers = loader.loadServerNames();
             System.out.println("Populated servers' name list.");
         }
 
         if(atomixUtils == null){
             System.out.println("AtomixUtils is null, fixing...");
+            atomixUtils = new AtomixUtils();
             System.out.println("Fixed Atomix Utils.");
         }
 
         if(atomix == null){
             System.out.println("Atomix is null, fixing...");
+            //atomix = atomixUtils.getServer("Acuña", "88.4.20.69", 8888, servers).join();
             System.out.println("Fixed Atomix.");
         }
 

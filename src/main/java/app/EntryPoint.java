@@ -11,11 +11,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import java.io.*;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import static app.ApplicationServer.distributed_metadata_tree;
+import static app.ApplicationServer.atomix;
 
 @Path("/api")
 public class EntryPoint {
@@ -27,10 +29,10 @@ public class EntryPoint {
      * @param path the current absolute path fo the client
      * @return the node where the client is at that moment
      */
-    private MetadataNode goToCurrentNode(String path){
+    private MetadataNode goToNode(MetadataNode startingNode, String path){
 
         List<String> pathSplit = new LinkedList<>(Arrays.asList(path.split("/")));
-        MetadataNode node = distributed_metadata_tree.get_root();
+        MetadataNode node = startingNode;
         while(!pathSplit.isEmpty()){
             String next = pathSplit.remove(0);
             MetadataNode nextNode = node.get(next);
@@ -39,6 +41,28 @@ public class EntryPoint {
             }
         }
         return node;
+    }
+
+    /**
+     * TODO rename and review
+     * Method that allows communication between the entry point and the Cluster Controller(atomix)
+     * Used to ask the cluster controller to do stuff to the files (copy, add, remove, etc)
+     * @param what
+     */
+    private String ask(String what){
+        String res = "";
+        String[] request = what.split(" ");
+        switch (request[0]){
+            case "rmdir":
+
+                break;
+            case "mkdir":
+                break;
+            default:
+                res = "That's not a valid request";
+                break;
+        }
+        return res;
     }
 
     @POST
@@ -129,6 +153,7 @@ public class EntryPoint {
     }
 
     /**
+     * TODO use metadata tree asap
      * Implementation of mkdir.
      * Creates a folder in the given name.
      * @param newFoldername the name to create to the folder.
@@ -159,6 +184,7 @@ public class EntryPoint {
     }
 
     /**
+     * TODO the remove part has to be implemented yet! also review
      * Implementation of rmdir.
      * Removes a folder if and only if it is empty.
      * @param folderName, the folder to remove
@@ -166,32 +192,64 @@ public class EntryPoint {
      */
     private String rmdir(String folderName, String currPath){
         String res = "";
-        File currDir = new File(currPath);
-        File target = new File(currPath+folderName);
-        if(!target.exists() || target.exists() && !target.isDirectory())
-            res = "Folder doesn't exist or isn't a directory...";
-        else if(target.exists() && target.isDirectory()){
-            if(target.listFiles().length == 0){
-                if(!target.getAbsolutePath().equals(currDir.getPath())){
-                    if(!target.delete()){
-                        res="Couldn't delete the folder, check your permissions...";
-                    }
-                }
-            } else{
-                res = "The folder isn't empty...";
+
+        //MetadataNode currNode = goToNode(currPath);
+        // case when the absolute path is given
+        List<String> pathParted = new ArrayList<>(Arrays.asList(folderName.split("/")));
+
+
+        if(folderName.charAt(0)=='/'){
+            String fname = goToNode(distributed_metadata_tree.get_root(),folderName).getName();
+
+            MetadataNode currNode = goToNode(distributed_metadata_tree.get_root(),currPath);
+            MetadataNode parentOfFolder = goToNode(distributed_metadata_tree.get_root(),folderName).getParent();
+            MetadataNode nodeToDelete = parentOfFolder.get(fname);
+
+            if(nodeToDelete.isFile())
+                return "That's a file...";
+            else if(nodeToDelete.isFolder() && !nodeToDelete.isLeaf())
+                return "That folder is not empty...";
+            else if(nodeToDelete == currNode)
+                return "Can't delete the folder you are in...";
+            else{
+                parentOfFolder.remove(fname);
+                if(nodeToDelete == null)
+                    return "";
+                else
+                    return "Couldn't delete the folder...";
+            }
+        }
+        // case when a relative path is given
+        else{
+            MetadataNode currNode = goToNode(distributed_metadata_tree.get_root(),currPath);
+            MetadataNode targetNode = goToNode(currNode,folderName);
+            MetadataNode parentOfTarget = goToNode(currNode,folderName).getParent();
+            if(targetNode == null)
+                return  "That doens't exist";
+            else if(targetNode.isFile())
+                return "That's a file...";
+            else if(targetNode.isFolder() && !targetNode.isLeaf())
+                return  "Folder's not empty...";
+            else if(targetNode.isFolder() && targetNode.isLeaf()){
+                parentOfTarget.remove(targetNode.getName());
+                if(targetNode == null)
+                    return "";
+                else
+                    return "Couldn't delete the folder";
             }
         }
         return res;
     }
 
     /**
+     * TODO review correctness fo method
      * Implementation of the ls command
      * @param currPath is the current absolutePath that the client encounters itself in.
      * @return the simplest version of ls (argumentless)
      */
     private String ls(String currPath){
         String res = "";
-        MetadataNode node = goToCurrentNode(currPath);
+        MetadataNode node = goToNode(distributed_metadata_tree.get_root(),currPath);
         List<MetadataNode> children = node.getChildren();
         for(MetadataNode child: children){
             if(child.isFolder()){
@@ -215,6 +273,7 @@ public class EntryPoint {
     }
 
     /**
+     * TODO use metadata tree asap
      * Implementation of cat command
      * @param fileName, the path to the file we want to cat.
      * @return
@@ -246,7 +305,7 @@ public class EntryPoint {
      * @return
      */
     private String cd(String folder, String currDir){
-        MetadataNode currNode = goToCurrentNode(currDir);
+        MetadataNode currNode = goToNode(distributed_metadata_tree.get_root(),currDir);
         System.out.println("curr node has path: "+currNode.getPath());
         System.out.println("Current node is: "+currNode.getPath());
         MetadataNode nextNode;
@@ -291,6 +350,7 @@ public class EntryPoint {
     }
 
     /**
+     * TODO use metadata tree as soon as chunk stuff is working
      * implementation of the ">" command.
      * @param file1 source
      * @param file2 destination

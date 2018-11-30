@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 public class AtomixUtils {
 
     // todo load List<String> servers from config file
+    // local_id not in server list -> client
     public CompletableFuture<Atomix> getServer(String local_id, String local_ip,
                                                       int local_port,
                                                       List<String> servers) {
