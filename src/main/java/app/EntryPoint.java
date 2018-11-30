@@ -25,25 +25,6 @@ public class EntryPoint {
     JSONParser parser = new JSONParser();
 
     /**
-     * Method that goes down the tree given the current absolute path for a client
-     * @param path the current absolute path fo the client
-     * @return the node where the client is at that moment
-     */
-    private MetadataNode goToNode(MetadataNode startingNode, String path){
-
-        List<String> pathSplit = new LinkedList<>(Arrays.asList(path.split("/")));
-        MetadataNode node = startingNode;
-        while(!pathSplit.isEmpty()){
-            String next = pathSplit.remove(0);
-            MetadataNode nextNode = node.get(next);
-            if(nextNode != null && nextNode.isFolder()){
-                node = nextNode;
-            }
-        }
-        return node;
-    }
-
-    /**
      * TODO rename and review
      * Method that allows communication between the entry point and the Cluster Controller(atomix)
      * Used to ask the cluster controller to do stuff to the files (copy, add, remove, etc)
