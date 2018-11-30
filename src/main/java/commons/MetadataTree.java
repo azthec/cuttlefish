@@ -21,7 +21,7 @@ public class MetadataTree {
         root.print(0);
     }
 
-    private MetadataNode goToNode(String path){
+    public MetadataNode goToNode(String path){
         List<String> pathSplit = new LinkedList<>(Arrays.asList(path.split("/")));
         MetadataNode node = root;
         while(!pathSplit.isEmpty()){
@@ -39,7 +39,7 @@ public class MetadataTree {
      * @param path the current absolute path fo the client
      * @return the node where the client is at that moment
      */
-    private MetadataNode goToNode(MetadataNode startingNode, String path){
+    public MetadataNode goToNode(MetadataNode startingNode, String path){
         List<String> pathSplit = new LinkedList<>(Arrays.asList(path.split("/")));
         MetadataNode node = startingNode;
         while(!pathSplit.isEmpty()){

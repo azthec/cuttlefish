@@ -14,7 +14,7 @@ public class MetadataNode implements Comparable<MetadataNode> {
     private boolean type;
     private int version;
     private List<MetadataNode> children;
-    private List<String> objects;
+    private int objects;
 
     public MetadataNode getParent() {
         return parent;
@@ -52,15 +52,21 @@ public class MetadataNode implements Comparable<MetadataNode> {
         return children;
     }
 
-
-
-    public List<String> getObjects() {
+    public int getObjects() {
         return objects;
     }
 
-    public void setObjects(List<String> oids) {
+    public List<String> getObjectsAsOIDsString() {
+        List<String> result = new ArrayList<>();
+        for (int i = 0; i < objects; i++) {
+            result.add(path + i);
+        }
+        return result;
+    }
+
+    public void setObjects(int objects) {
         if (type != FOLDER) {
-            this.objects = new ArrayList<>(oids);
+            this.objects = objects;
         } else {
             throw new IllegalArgumentException("Folders can't have contents.");
         }
