@@ -9,14 +9,11 @@ import java.util.Scanner;
 
 public class ShellClient {
 
-    private static File currDir = new File(System.getProperty("user.dir")); // remove this later
-    private static String currDirectory = "/"; // default value.
+    private static String currDirectory = "/";  // default value.
 
     private static void updateCurrDir(String s){
-        if(s.split(" ")[0].equals("ERROR")){
-            System.out.println("Invalid directory");
-        }
-        else currDir = new File((s+"/"));
+        if(s.charAt(0) == '/')
+            currDirectory = s;
     }
 
     private static String unURLifyCMD(String s){
@@ -36,7 +33,6 @@ public class ShellClient {
         try {
 
             JSONObject object = new JSONObject();
-            //object.put("currPath",currDir.getPath());
             object.put("currPath", currDirectory);
             object.put("cmd",cmd);
             String jsonString = object.toString();
@@ -52,23 +48,21 @@ public class ShellClient {
             outputStream.write(jsonString.getBytes("UTF-8"));
             outputStream.close();
 
-            if (conn.getResponseCode() != 200) {
+            if (conn.getResponseCode() != 200)
                 throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
-            }
 
             BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
 
             String output;
             String resReceived = "";
-            while ((output = br.readLine()) != null) {
-                //System.out.println(output);
+            while ((output = br.readLine()) != null)
                 resReceived += output;
-            }
 
             System.out.println(resReceived);
 
-            if(unURLifyCMD(cmd).split(" ")[0].equals("cd"))
+            if(unURLifyCMD(cmd).split(" ")[0].equals("cd")){
                 updateCurrDir(resReceived);
+            }
 
             conn.disconnect();
 

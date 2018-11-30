@@ -2,7 +2,7 @@ package commons;
 
 import java.util.*;
 
-// potentially uneeded
+// Indispensable
 public class MetadataNode implements Comparable<MetadataNode> {
 
     public static boolean FILE = false;

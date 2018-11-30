@@ -1,65 +1,44 @@
 package app;
 
-import commons.AtomixUtils;
-import commons.Loader;
 import commons.MetadataNode;
-import commons.MetadataTree;
-import io.atomix.core.Atomix;
-import io.atomix.core.value.AtomicValue;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import java.io.*;
 import java.net.URLDecoder;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+
+import static app.ApplicationServer.distributed_metadata_tree;
 
 @Path("/api")
 public class EntryPoint {
 
     JSONParser parser = new JSONParser();
-    private File baseDir = new File(System.getProperty("user.dir"));
-    Loader loader;
-    List<String> servers;
-    AtomixUtils atomixUtils;
-    Atomix atomix;
-    MetadataTree distributed_metadata_tree;
 
     /**
-     * Method that prevents vars from being null.
-     * Also acts as 1st time setup script.
+     * Method that goes down the tree given the current absolute path for a client
+     * @param path the current absolute path fo the client
+     * @return the node where the client is at that moment
      */
-    private void checkVars(){
+    private MetadataNode goToCurrentNode(String path){
 
-        if(loader == null){
-            loader = new Loader();
+        List<String> pathSplit = new LinkedList<>(Arrays.asList(path.split("/")));
+        MetadataNode node = distributed_metadata_tree.get_root();
+        while(!pathSplit.isEmpty()){
+            String next = pathSplit.remove(0);
+            MetadataNode nextNode = node.get(next);
+            if(nextNode != null && nextNode.isFolder()){
+                node = nextNode;
+            }
         }
-
-        if(servers == null){
-            System.out.println("Populating servers' name list...");
-            System.out.println("Populated servers' name list.");
-        }
-
-        if(atomixUtils == null){
-            System.out.println("AtomixUtils is null, fixing...");
-            System.out.println("Fixed Atomix Utils.");
-        }
-
-        if(atomix == null){
-            System.out.println("Atomix is null, fixing...");
-            System.out.println("Fixed Atomix.");
-        }
-
-        if(distributed_metadata_tree == null){
-            System.out.println("Fetching distributed metadata tree...");
-            distributed_metadata_tree = loader.sample_metadata_tree();
-            System.out.println("Got distributed metadata tree.");
-        }
-
-
+        return node;
     }
 
     @POST
@@ -67,15 +46,13 @@ public class EntryPoint {
     @Produces(MediaType.TEXT_PLAIN)
     public String process(InputStream incommingData) {
 
-        checkVars(); // don't remove this, edit it!
-
         StringBuilder stringBuilder = new StringBuilder();
         JSONObject jsonObject;
         String cmd = "";
 
         try{
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(incommingData));
-            String line = null;
+            String line;
 
             while ((line = bufferedReader.readLine())!= null){
                 stringBuilder.append(line);
@@ -95,9 +72,6 @@ public class EntryPoint {
     /**
      * This method executes the commands requested.
      *
-     * Danger:
-     * Allways test the commands inside the "testfolder" directory, so you don't delete important files by mistake.
-     *
      * @param cmd is the command to execute, passed as a String (which is then split & processed).
      * @param currPath is the current path of the client.
      *
@@ -109,25 +83,25 @@ public class EntryPoint {
 
         switch (cmd_parted[0]) {
             case "ls":
-                res = ls(currPath+"/");
+                res = ls(currPath);
                 break;
             case "pwd":
-                res = pwd(currPath+"/");
+                res = pwd(currPath);
                 break;
             case "cd":
-                res = cd(cmd_parted[1],currPath+"/");
+                res = cd(cmd_parted[1],currPath);
                 break;
             case "cat":
-                res = cat(cmd_parted[1],currPath+"/");
+                res = cat(cmd_parted[1],currPath);
                 break;
             case "mkdir":
-                res = mkdir(cmd_parted[1],currPath+"/");
+                res = mkdir(cmd_parted[1],currPath);
                 break;
             case "rmdir":
-                res = rmdir(cmd_parted[1],currPath+"/");
+                res = rmdir(cmd_parted[1],currPath);
                 break;
             case "test":
-                res = test(currPath+"/");
+                res = test(currPath);
                 break;
             case "echo":
                 res = echo(cmd_parted[1]);
@@ -137,7 +111,7 @@ public class EntryPoint {
                 if(cmd_parted.length == 3){
                     // file1's contents to file2 (create if not exists)
                     if(cmd_parted[1].equals(">"))
-                        res = file2file(cmd_parted[0],cmd_parted[2],currPath+"/");
+                        res = file2file(cmd_parted[0],cmd_parted[2],currPath);
                 }
                 cmd = "";
                 break;
@@ -217,13 +191,7 @@ public class EntryPoint {
      */
     private String ls(String currPath){
         String res = "";
-        List<String> pathSplit = Arrays.asList(currPath.split("/"));
-        MetadataNode node = distributed_metadata_tree.get_root();
-        // go down the tree
-        while(!pathSplit.isEmpty()){
-            String next = pathSplit.remove(0);
-            node = node.get(next);
-        }
+        MetadataNode node = goToCurrentNode(currPath);
         List<MetadataNode> children = node.getChildren();
         for(MetadataNode child: children){
             if(child.isFolder()){
@@ -233,18 +201,7 @@ public class EntryPoint {
             }
         }
 
-        /*
-        antique version
-        File currDir = new File(currPath);
-        for(File file:currDir.listFiles()){
-            if(file.isDirectory()){
-                res+= AppMisc.ANSI_BLUE+file.getName()+"/ "+ AppMisc.ANSI_RESET +"\n";
-            } else {
-                res += file.getName()+" \n";
-            }
-        }
-        */
-        return res;
+        return "path is: "+currPath+" and content is: "+res;
     }
 
 
@@ -283,22 +240,45 @@ public class EntryPoint {
     /**
      * Implementation of cd command
      * returns new directory in case of success, error message else.
-     * @param folder
-     * @param currDir
+     *
+     * @param folder the path to the folder
+     * @param currDir the current directory
      * @return
      */
     private String cd(String folder, String currDir){
-        File curr = new File(currDir);
+        MetadataNode currNode = goToCurrentNode(currDir);
+        System.out.println("curr node has path: "+currNode.getPath());
+        System.out.println("Current node is: "+currNode.getPath());
+        MetadataNode nextNode;
 
-        if(folder.equals(".."))
-            return new File(currDir).getParent();
-
-        for(File file: curr.listFiles()){
-            if(file.getName().equals(folder) && file.isDirectory())
-                System.out.println("should change to: "+currDir+folder);
-                return currDir+folder;
+        if(folder.charAt(0) == '/'){
+            System.out.println("jumping to root");
+            currNode = distributed_metadata_tree.get_root();
         }
-        return "ERROR invalid folder.";
+
+
+        List<String> folderPathParted = new LinkedList<>(Arrays.asList(folder.split("/")));
+        while(!folderPathParted.isEmpty()){
+            String pathPiece = folderPathParted.remove(0);
+            // cant go up the root
+            if(pathPiece.equals("..") && currNode != distributed_metadata_tree.get_root()){
+                System.out.println("jumping to parent: "+currNode.getParent().getPath());
+                currNode = currNode.getParent();
+            }
+            // check the currNode for the next step
+            else{
+                nextNode =  currNode.get(pathPiece);
+                if (nextNode.isFile())
+                    return "That's a file...";
+                if(nextNode == null || nextNode.isFile())
+                    return "There is no folder named " +pathPiece+" under "+currNode.getPath()+".";
+                else
+                    currNode = nextNode;
+            }
+        }
+
+        System.out.println("Client is now at "+currNode.getPath());
+        return currNode.getPath();
     }
 
     /**
