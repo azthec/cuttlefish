@@ -24,28 +24,6 @@ public class EntryPoint {
 
     JSONParser parser = new JSONParser();
 
-    /**
-     * TODO rename and review
-     * Method that allows communication between the entry point and the Cluster Controller(atomix)
-     * Used to ask the cluster controller to do stuff to the files (copy, add, remove, etc)
-     * @param what
-     */
-    private String ask(String what){
-        String res = "";
-        String[] request = what.split(" ");
-        switch (request[0]){
-            case "rmdir":
-
-                break;
-            case "mkdir":
-                break;
-            default:
-                res = "That's not a valid request";
-                break;
-        }
-        return res;
-    }
-
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
@@ -75,11 +53,8 @@ public class EntryPoint {
     }
 
     /**
-     * This method executes the commands requested.
-     *
      * @param cmd is the command to execute, passed as a String (which is then split & processed).
      * @param currPath is the current path of the client.
-     *
      * @return the result of that command, in String form.
      */
     private String exectuteCmd(String cmd,String currPath){
@@ -135,38 +110,27 @@ public class EntryPoint {
 
     /**
      * TODO use metadata tree asap
-     * Implementation of mkdir.
-     * Creates a folder in the given name.
      * @param newFoldername the name to create to the folder.
      * @return an empty String for success or an error message.
      */
     private String mkdir(String newFoldername, String currPath){
         String res = "";
-        File newFolder = new File(currPath+newFoldername);
-        if (!newFolder.exists()) {
-            boolean result = false;
-            try{
-                newFolder.mkdir();
-                result = true;
-            }
-            catch(SecurityException se){
-                se.printStackTrace();
-            }
-            if(!result) {
-                System.out.println("1: "+res);
-                res = "Could not create folder, check your permissions...";
-            }
-        } else{
-            System.out.println("2: "+res);
-            res = "That folder already exists...";
+        MetadataNode currNode = distributed_metadata_tree.goToNode(currPath);
+        MetadataNode newNode = distributed_metadata_tree.goToNode(currNode,newFoldername);
+        if(newNode != null){
+            if(newNode.isFolder())
+                res = "That folder already exists...";
+            else if (newNode.isFile())
+                res = "That's an already existing file...";
+        } else if (newNode == null){
+            // TODO insert the comms with the OSD's to create a folder here.
+            //currNode.addFolder(newFoldername);
         }
-        System.out.println("3: "+res);
         return res;
     }
 
     /**
      * TODO the remove part has to be implemented yet! also review
-     * Implementation of rmdir.
      * Removes a folder if and only if it is empty.
      * @param folderName, the folder to remove
      * @return empty String for success, or an error message.
@@ -174,10 +138,7 @@ public class EntryPoint {
     private String rmdir(String folderName, String currPath){
         String res = "";
 
-        //MetadataNode currNode = goToNode(currPath);
-        // case when the absolute path is given
         List<String> pathParted = new ArrayList<>(Arrays.asList(folderName.split("/")));
-
 
         if(folderName.charAt(0)=='/'){
             String fname = distributed_metadata_tree.goToNode(folderName).getName();
@@ -224,7 +185,6 @@ public class EntryPoint {
 
     /**
      * TODO review correctness fo method
-     * Implementation of the ls command
      * @param currPath is the current absolutePath that the client encounters itself in.
      * @return the simplest version of ls (argumentless)
      */
@@ -243,37 +203,34 @@ public class EntryPoint {
         return "path is: "+currPath+" and content is: "+res;
     }
 
-
     /**
-     * Implementation of pwd command
      * @return the present work directory
      */
     private String pwd(String currPath){
-        File currDir = new File(currPath);
-        return currDir.getPath();
+        MetadataNode currNode  = distributed_metadata_tree.goToNode(currPath);
+        return currNode.getPath();
     }
 
     /**
      * TODO use metadata tree asap
      * Implementation of cat command
      * @param fileName, the path to the file we want to cat.
+     * @param currDir, the current directory (file is inside currdir)
      * @return
      */
     private String cat (String fileName, String currDir){
         String res = "Content: \n";
-        File targetFile = new File(currDir+fileName);
-        try {
-            BufferedReader bufferedReader = new BufferedReader(new FileReader(targetFile));
-            String s;
-            while((s=bufferedReader.readLine()) != null){
-                res += s+"\n";
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        MetadataNode currNode = distributed_metadata_tree.goToNode(currDir);
+        MetadataNode childNode = currNode.get(fileName);
+        if(!(childNode == null) && childNode.isFile()){
+            // TODO ask tree for file contents here... maybe extend MetadataNode with getContent() method
         }
-        System.out.println(res);
+        else{
+            if(childNode == null)
+                res = "The file doesn't exist.";
+            else if (childNode != null && childNode.isFolder())
+                res = "That's a folder...";
+        }
         return res;
     }
 
@@ -333,21 +290,43 @@ public class EntryPoint {
     /**
      * TODO use metadata tree as soon as chunk stuff is working
      * implementation of the ">" command.
+     * Assuming that both file1 and file2 are under the currdir
      * @param file1 source
      * @param file2 destination
      * @param currPath the client's current path
      * @return
      */
     private String file2file(String file1, String file2, String currPath){
+
+        String res = "";
+        MetadataNode currNode = distributed_metadata_tree.goToNode(currPath);
+        MetadataNode n1 = currNode.get(file1);
+        MetadataNode n2 = currNode.get(file2);
+
+        if(n1 == null || n1.isFolder())
+            res += "\nSource is either null or a folder";
+        if(n2.isFolder())
+            res += "\nTarget is a folder";
+        if(n2 == null) {
+            //TODO create new node and use it as a file
+        }
+        if(n1 != null && n1.isFile() && n2 != null && n2.isFile()){
+            // do stuff here
+        }
+
         /*
-        *
-        *
-        * REFAZER
-        *
+        * check if the file is being used
+        * lock it
+        * check if file 2 exists (create if not) and is being used
+        * lock it
+        * do >
+        *  unlock both
+        *  profit
         *
         * */
-        String res = "";
-        File currDir = new File(currPath);
+
+
+      /*  File currDir = new File(currPath);
         File f2 = new File(file2);
         if(!f2.exists()) {
             try {
@@ -370,7 +349,7 @@ public class EntryPoint {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-
+*/
         return res;
     }
 }
