@@ -180,10 +180,10 @@ public class EntryPoint {
 
 
         if(folderName.charAt(0)=='/'){
-            String fname = goToNode(distributed_metadata_tree.get_root(),folderName).getName();
+            String fname = distributed_metadata_tree.goToNode(folderName).getName();
 
-            MetadataNode currNode = goToNode(distributed_metadata_tree.get_root(),currPath);
-            MetadataNode parentOfFolder = goToNode(distributed_metadata_tree.get_root(),folderName).getParent();
+            MetadataNode currNode = distributed_metadata_tree.goToNode(currPath);
+            MetadataNode parentOfFolder = distributed_metadata_tree.goToNode(folderName).getParent();
             MetadataNode nodeToDelete = parentOfFolder.get(fname);
 
             if(nodeToDelete.isFile())
@@ -202,9 +202,9 @@ public class EntryPoint {
         }
         // case when a relative path is given
         else{
-            MetadataNode currNode = goToNode(distributed_metadata_tree.get_root(),currPath);
-            MetadataNode targetNode = goToNode(currNode,folderName);
-            MetadataNode parentOfTarget = goToNode(currNode,folderName).getParent();
+            MetadataNode currNode = distributed_metadata_tree.goToNode(currPath);
+            MetadataNode targetNode = distributed_metadata_tree.goToNode(currNode,folderName);
+            MetadataNode parentOfTarget = distributed_metadata_tree.goToNode(currNode,folderName).getParent();
             if(targetNode == null)
                 return  "That doens't exist";
             else if(targetNode.isFile())
@@ -230,7 +230,7 @@ public class EntryPoint {
      */
     private String ls(String currPath){
         String res = "";
-        MetadataNode node = goToNode(distributed_metadata_tree.get_root(),currPath);
+        MetadataNode node = distributed_metadata_tree.goToNode(currPath);
         List<MetadataNode> children = node.getChildren();
         for(MetadataNode child: children){
             if(child.isFolder()){
@@ -286,7 +286,7 @@ public class EntryPoint {
      * @return
      */
     private String cd(String folder, String currDir){
-        MetadataNode currNode = goToNode(distributed_metadata_tree.get_root(),currDir);
+        MetadataNode currNode = distributed_metadata_tree.goToNode(currDir);
         System.out.println("curr node has path: "+currNode.getPath());
         System.out.println("Current node is: "+currNode.getPath());
         MetadataNode nextNode;
