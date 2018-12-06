@@ -70,7 +70,7 @@ public class FileChunkClient {
         return null;
     }
 
-    public boolean postChunk(byte[] chunks, String oid) {
+    public boolean postChunk(String oid, byte[] chunks) {
         ChunkPostReply response;
 
         try {

@@ -12,6 +12,8 @@ public class Crush {
     private int p = 14981273;
 
     public List<CrushNode> select_OSDs(CrushNode root, String oid) {
+        // This is the equivalent to Crush selection rules
+        // Assumes CrushMap structure follows root - row - osd scheme.
         String sha256hex = DigestUtils.sha256Hex(oid);
         BigInteger oid_bint = new BigInteger(sha256hex, 16);
         List<CrushNode> root_list = new ArrayList<>();

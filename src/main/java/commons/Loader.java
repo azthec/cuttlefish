@@ -47,6 +47,7 @@ public class Loader {
     }
 
     public HashMap<String, ObjectStorageNode> get_osd_map() {
+        // be careful, ordering in hashmaps is not guaranteed!
         HashMap<String, ObjectStorageNode> hashMap = new HashMap<>();
         for (ObjectStorageNode osd : sample_osds()) {
             hashMap.put("" + osd.id, osd);
