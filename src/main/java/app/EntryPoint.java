@@ -1,6 +1,9 @@
 package app;
 
+import commons.FileChunkUtils;
 import commons.MetadataNode;
+import commons.ObjectStorageNode;
+import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -16,8 +19,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import static app.ApplicationServer.distributed_metadata_tree;
-import static app.ApplicationServer.atomix;
+import static app.ApplicationServer.*;
+
 
 @Path("/api")
 public class EntryPoint {
@@ -125,6 +128,13 @@ public class EntryPoint {
         } else if (newNode == null){
             // TODO insert the comms with the OSD's to create a folder here.
             //currNode.addFolder(newFoldername);
+            byte[] newDirBytes = FileChunkUtils.fileToByteArray(new File(newFoldername));
+
+            // any write operations require communication with the primary OSD
+            if(FileChunkUtils.post_object("oid",newDirBytes,loader.sample_crush_map()))
+                currNode.addFolder(newFoldername);
+            else
+                res = "Couldn't create the folder...";
         }
         return res;
     }
@@ -200,7 +210,7 @@ public class EntryPoint {
             }
         }
 
-        return "path is: "+currPath+" and content is: "+res;
+        return res;
     }
 
     /**
@@ -212,7 +222,7 @@ public class EntryPoint {
     }
 
     /**
-     * TODO use metadata tree asap
+     * TODO check correctness
      * Implementation of cat command
      * @param fileName, the path to the file we want to cat.
      * @param currDir, the current directory (file is inside currdir)
@@ -222,8 +232,9 @@ public class EntryPoint {
         String res = "";
         MetadataNode currNode = distributed_metadata_tree.goToNode(currDir);
         MetadataNode childNode = currNode.get(fileName);
-        if(!(childNode == null) && childNode.isFile()){
-            // TODO ask tree for file contents here... maybe extend MetadataNode with getContent() method
+        if(childNode != null && childNode.isFile()){
+            byte[] fileBytes = FileChunkUtils.get_file(childNode.getPath(),crushMap,distributed_metadata_tree);
+            res = getFileContent(fileBytes);
         }
         else{
             if(childNode == null)
@@ -235,6 +246,33 @@ public class EntryPoint {
     }
 
     /**
+     * TODO check correctness
+     * Helper method to cat, gets file content by "translating"
+     * bytes to a file, opening the file, getting the content, deleting the file and
+     * returning the content.
+     * @param fileBytes
+     * @return
+     */
+    private String getFileContent(byte[] fileBytes){
+        String res = "";
+        try {
+            File f1 = new File("tmpFile");
+            FileUtils.writeByteArrayToFile(new File("tmpFile"), fileBytes);
+            BufferedReader br = new BufferedReader(new FileReader(f1));
+            String st;
+            while ((st = br.readLine()) != null)
+               res += st +"\n";
+            br.close();
+            f1.delete();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    /**
+     *
+     * TODO test correctness
      * Implementation of cd command
      * returns new directory in case of success, error message else.
      *
@@ -312,44 +350,11 @@ public class EntryPoint {
         }
         if(n1 != null && n1.isFile() && n2 != null && n2.isFile()){
             // do stuff here
+            byte[] source = FileChunkUtils.get_file("oid",crushMap,distributed_metadata_tree);
+
         }
 
-        /*
-        * check if the file is being used
-        * lock it
-        * check if file 2 exists (create if not) and is being used
-        * lock it
-        * do >
-        *  unlock both
-        *  profit
-        *
-        * */
 
-
-      /*  File currDir = new File(currPath);
-        File f2 = new File(file2);
-        if(!f2.exists()) {
-            try {
-                f2.createNewFile();
-                System.out.println("f2 is in: "+f2.getAbsolutePath());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        String contents = cat(file1,currPath);
-
-        PrintWriter writer = null;
-        try {
-            writer = new PrintWriter(file2, "UTF-8");
-            writer.println(contents);
-            writer.flush();
-            writer.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-*/
         return res;
     }
 }

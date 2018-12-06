@@ -1,13 +1,22 @@
 package commons;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 public class FileChunkUtils {
+    /**
+     *
+     * @param file_path, the absolute path to the file
+     * @param crushMap, the crush map
+     * @param metadataTree, the metadata tree
+     * @return
+     */
     public static byte[] get_file(String file_path, CrushMap crushMap, MetadataTree metadataTree) {
         MetadataNode file_node = metadataTree.goToNode(file_path);
         int max_file_size = 1024*1024*2* file_node.getObjects();
@@ -62,6 +71,26 @@ public class FileChunkUtils {
         return post_result;
     }
 
+    /**
+     * Method to help the post_object method above
+     * converts a local file to a byte array, that we can transmit
+     * @param file
+     * @return
+     */
+    public static byte[] fileToByteArray(File file){
+        byte[] res = null;
+        FileInputStream fileInputStream;
+        try {
+            fileInputStream = new FileInputStream(file);
+            res = IOUtils.toByteArray(fileInputStream);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
     public static List<ObjectStorageNode>  get_object_osds(String oid, CrushMap crushMap) {
         System.out.println("Running OID selection for: " + oid);
 
@@ -92,4 +121,6 @@ public class FileChunkUtils {
             return null;
         }
     }
+
+
 }

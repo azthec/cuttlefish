@@ -1,8 +1,6 @@
 package app;
 
-import commons.AtomixUtils;
-import commons.Loader;
-import commons.MetadataTree;
+import commons.*;
 import io.atomix.core.Atomix;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -20,6 +18,8 @@ public class ApplicationServer {
     static AtomixUtils atomixUtils;
     static Atomix atomix;
     static MetadataTree distributed_metadata_tree;
+    static CrushMap crushMap;
+    static FileChunkUtils fileChunkUtils;
 
     /**
      * Method that prevents vars from being null.
@@ -29,6 +29,10 @@ public class ApplicationServer {
         System.out.println("------------------------------------");
         if(loader == null){
             loader = new Loader();
+        }
+
+        if (crushMap == null){
+            crushMap = loader.sample_crush_map();
         }
 
         if(servers == null){
