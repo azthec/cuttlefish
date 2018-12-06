@@ -102,7 +102,7 @@ public class EntryPoint {
 
     /**
      * This is a test function, for debugging purposes.
-     * @return
+     * @return the test functions output
      */
     private String test(String currPath){
         return "";
@@ -219,7 +219,7 @@ public class EntryPoint {
      * @return
      */
     private String cat (String fileName, String currDir){
-        String res = "Content: \n";
+        String res = "";
         MetadataNode currNode = distributed_metadata_tree.goToNode(currDir);
         MetadataNode childNode = currNode.get(fileName);
         if(!(childNode == null) && childNode.isFile()){

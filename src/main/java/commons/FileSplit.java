@@ -56,7 +56,7 @@ class FileSplit {
      * @param chunks the list of chunks, assumed ordered.
      * @param targetFile the file where we write to.
      */
-    public static void mergeChunks(List<ChunkData> chunks, File targetFile){
+    public static String mergeChunks(List<ChunkData> chunks, File targetFile){
         String dataString = "";
         for(ChunkData chunk: chunks){
             dataString += chunk.getData();
@@ -72,6 +72,7 @@ class FileSplit {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+        return dataString;
     }
 
 
