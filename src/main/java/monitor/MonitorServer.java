@@ -98,6 +98,8 @@ public class MonitorServer {
             }
         }
 
+        distributed_crush_maps.get(0).print();
+
         // TODO uncomment this when implementing OSD failure tolerance
         // If RAFT leader manage OSD hearbeats and update CrushMap
         // adapts to RAFT leader changes automatically

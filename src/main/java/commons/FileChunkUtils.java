@@ -31,7 +31,7 @@ public class FileChunkUtils {
             }
             result = ArrayUtils.addAll(result, get_result);
         }
-        System.out.println("Got complete file sucessfully, with size: " + result.length + "bytes.");
+        System.out.println("Got complete file successfully, with size: " + result.length + "bytes.");
         return result;
     }
 
@@ -52,7 +52,43 @@ public class FileChunkUtils {
             return new byte[0];
         }
         System.out.println("File getting returned: " + new String(get_result, StandardCharsets.UTF_8) + "\n");
+        try {
+            client.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         return get_result;
+    }
+//I like to name parts from 000, 001, 002
+//        String filePartName = String.format("%s_%03d", fileName, partCounter++);
+
+    /**
+     *
+     * @param local_file_path, the absolute path to the file
+     * @param crushMap, the crush map
+     * @param metadataTree, the metadata tree
+     * @return
+     */
+    public static boolean post_file(String local_file_path, String remote_file_path,
+                                    CrushMap crushMap, MetadataTree metadataTree)
+            throws IOException {
+
+        // TODO eventually handle adding to the metadata tree
+
+        byte[][] data = fileToByteArrays(new File(local_file_path));
+        List<String> file_OIDs = new ArrayList<>();
+        for (int i = 0; i < data.length; i++) {
+            file_OIDs.add(remote_file_path + "_" + i);
+        }
+        for (int i = 0; i < data.length; i++) {
+            boolean post_result = post_object(file_OIDs.get(i), data[i], crushMap);
+            if (!post_result) {
+                System.out.println("Failed to post file part = " + i + " !");
+                return false;
+            }
+        }
+        System.out.println("Posted complete file successfully!");
+        return true;
     }
 
     public static boolean post_object(String oid, byte[] data, CrushMap crushMap) {
@@ -68,12 +104,16 @@ public class FileChunkUtils {
         System.out.println("Posting object: " + oid + " | with data: " + data);
         boolean post_result = client.postChunk(oid, data);
         System.out.println("File posting returned: " + post_result + "\n");
+        try {
+            client.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         return post_result;
     }
 
     /**
-     * Method to help the post_object method above
-     * converts a local file to a byte array, that we can transmit
+     * Converts a local file to a byte array, that we can transmit
      * @param file
      * @return
      */
@@ -91,9 +131,14 @@ public class FileChunkUtils {
         return res;
     }
 
+
+    /**
+     * Converts a local file to a byte matrix
+     * @param file
+     * @return
+     */
     public static byte[][] fileToByteArrays(File file) throws IOException {
-        int partCounter = 0;//I like to name parts from 000, 001, 002
-//        String filePartName = String.format("%s_%03d", fileName, partCounter++);
+        int partCounter = 0;
 
         int sizeOfFiles = 1024 * 1024; // 1MB
         byte[] buffer = new byte[sizeOfFiles];
@@ -113,6 +158,10 @@ public class FileChunkUtils {
         return res;
     }
 
+    /**
+     * Converts a byte matrix to a local file
+     * @param bytes, into
+     */
     public static void byteArraysToFile(byte[][] bytes, File into) {
         try {
             FileOutputStream fos = new FileOutputStream(into, true);

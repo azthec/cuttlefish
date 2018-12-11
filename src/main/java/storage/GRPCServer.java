@@ -83,9 +83,8 @@ public class GRPCServer {
         public void getChunk(ChunkOid request, StreamObserver<ChunkData> responseObserver) {
             // TODO test gRPC chunks
             byte[] data;
-            System.out.println("Serving chunk!");
+            System.out.println("Serving chunk: " + request.getOid());
             try {
-                System.out.println("Reading file!");
                 data = FileUtils.readFileToByteArray(new File(DATAFOLDER + request.getOid()));
                 responseObserver.onNext(ChunkData
                         .newBuilder()
@@ -103,6 +102,7 @@ public class GRPCServer {
         public void postChunk(ChunkData request, StreamObserver<ChunkPostReply> responseObserver) {
             String oid = request.getOid();
             byte[] data = request.getData().toByteArray();
+            System.out.println("Storing chunk: " + request.getOid());
             try {
                 FileUtils.writeByteArrayToFile(new File(DATAFOLDER + oid), data);
                 responseObserver.onNext(ChunkPostReply.newBuilder()

@@ -60,7 +60,7 @@ public class MetadataNode implements Comparable<MetadataNode> {
     public List<String> getObjectsAsOIDsString() {
         List<String> result = new ArrayList<>();
         for (int i = 0; i < objects; i++) {
-            result.add(path + i);
+            result.add(path + "_" + i);
         }
         return result;
     }

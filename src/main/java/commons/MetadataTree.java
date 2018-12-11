@@ -34,8 +34,6 @@ public class MetadataTree {
             MetadataNode nextNode = node.get(next);
             if (nextNode == null)
                 return null;
-            System.out.println(nextNode.getPath());
-            System.out.println(nextNode.getName());
             if (nextNode.getPath().equals(path))
                 return nextNode;
             node = nextNode;

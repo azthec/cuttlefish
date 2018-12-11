@@ -14,7 +14,7 @@ import static commons.FileChunkUtils.*;
 
 public class Main {
     public static void main(String[] args) {
-        test_file_splitting();
+        test_file_posting();
     }
 
     public static void test_object_grpc_with_crushmap() {
@@ -35,9 +35,22 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
 
-
-
+    public static void test_file_posting() {
+        Loader loader = new Loader();
+        CrushMap cluster_map = loader.sample_crush_map();
+        MetadataTree meta_tree = loader.sample_metadata_tree();
+        try {
+            post_file(
+                    "/home/azthec/IdeaProjects/cuttlefish/storage/toogood.mp4",
+                    "/test.mp4",
+                    cluster_map,
+                    meta_tree
+            );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
