@@ -3,17 +3,18 @@ package demos;
 import commons.FileChunkClient;
 import commons.*;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import static commons.FileChunkUtils.get_object;
-import static commons.FileChunkUtils.get_object_primary;
-import static commons.FileChunkUtils.post_object;
+import static commons.FileChunkUtils.*;
 
 public class Main {
     public static void main(String[] args) {
-        test_object_grpc_with_crushmap();
+        test_file_splitting();
     }
 
     public static void test_object_grpc_with_crushmap() {
@@ -22,6 +23,20 @@ public class Main {
         get_object("1337", cluster_map);
 
         post_object("monsiour", "bogas".getBytes(), cluster_map);
+
+    }
+
+    public static void test_file_splitting() {
+        File input = new File("/home/azthec/IdeaProjects/cuttlefish/storage/toogood.mp4");
+        try {
+            byte[][] result = fileToByteArrays(input);
+
+            byteArraysToFile(result, new File("/home/azthec/IdeaProjects/cuttlefish/storage/toobyted.mp4"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
 
     }
 

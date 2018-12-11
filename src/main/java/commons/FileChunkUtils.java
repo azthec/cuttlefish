@@ -5,6 +5,7 @@ import org.apache.commons.lang3.ArrayUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,7 +58,6 @@ public class FileChunkUtils {
     public static boolean post_object(String oid, byte[] data, CrushMap crushMap) {
         System.out.println("Posting object with ID: " + oid);
 
-        // TODO change this to randomly use one of the OSD's in get_object_osds
         ObjectStorageNode primary = get_object_primary(oid, crushMap);
         if (primary == null) {
             System.out.println("Failed to find primary for object: " + oid);
@@ -89,6 +89,39 @@ public class FileChunkUtils {
             e.printStackTrace();
         }
         return res;
+    }
+
+    public static byte[][] fileToByteArrays(File file) throws IOException {
+        int partCounter = 0;//I like to name parts from 000, 001, 002
+//        String filePartName = String.format("%s_%03d", fileName, partCounter++);
+
+        int sizeOfFiles = 1024 * 1024; // 1MB
+        byte[] buffer = new byte[sizeOfFiles];
+        int numberOfParts = (int) Math.ceil((double) file.length() / sizeOfFiles);
+        byte[][] res = new byte[numberOfParts][];
+
+        try (FileInputStream fis = new FileInputStream(file);
+             BufferedInputStream bis = new BufferedInputStream(fis)) {
+
+            int bytesAmount;
+            while ((bytesAmount = bis.read(buffer)) > 0) {
+                res[partCounter] = new byte[bytesAmount];
+                System.arraycopy(buffer, 0, res[partCounter], 0, bytesAmount);
+                partCounter++;
+            }
+        }
+        return res;
+    }
+
+    public static void byteArraysToFile(byte[][] bytes, File into) {
+        try {
+            FileOutputStream fos = new FileOutputStream(into, true);
+            for (byte[] buffer : bytes) {
+                fos.write(buffer);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static List<ObjectStorageNode>  get_object_osds(String oid, CrushMap crushMap) {

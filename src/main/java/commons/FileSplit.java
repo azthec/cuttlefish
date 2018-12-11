@@ -41,7 +41,7 @@ class FileSplit {
             int bytesAmount;
             while ((bytesAmount = bis.read(buffer)) > 0) {
                 //write each chunk of data into separate file with different number in name
-                String filePartName = String.format("%s.%03d", fileName, partCounter++);
+                String filePartName = String.format("%s_%03d", fileName, partCounter++);
                 File newFile = new File(f.getParent(), filePartName);
                 try (FileOutputStream out = new FileOutputStream(newFile)) {
                     out.write(buffer, 0, bytesAmount);
