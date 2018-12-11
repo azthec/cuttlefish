@@ -21,12 +21,35 @@ public class MetadataTree {
         root.print(0);
     }
 
+    public boolean nodeExists(String path) {
+        MetadataNode node = goToActualNode(path);
+        return node != null;
+    }
+
+    public MetadataNode goToActualNode(String path) {
+        List<String> pathSplit = new LinkedList<>(Arrays.asList(path.split("/")));
+        MetadataNode node = root;
+        pathSplit.remove(0);
+        for (String next : pathSplit) {
+            MetadataNode nextNode = node.get(next);
+            if (nextNode == null)
+                return null;
+            System.out.println(nextNode.getPath());
+            System.out.println(nextNode.getName());
+            if (nextNode.getPath().equals(path))
+                return nextNode;
+            node = nextNode;
+        }
+        return null;
+    }
+
     public MetadataNode goToNode(String path){
         List<String> pathSplit = new LinkedList<>(Arrays.asList(path.split("/")));
         MetadataNode node = root;
         while(!pathSplit.isEmpty()){
             String next = pathSplit.remove(0);
             MetadataNode nextNode = node.get(next);
+            System.out.println(node.getName());
             if(nextNode != null && nextNode.isFolder()){
                 node = nextNode;
             }
