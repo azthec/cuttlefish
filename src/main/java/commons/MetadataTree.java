@@ -4,6 +4,7 @@ package commons;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class MetadataTree {
 
@@ -26,8 +27,17 @@ public class MetadataTree {
         return node != null;
     }
 
+    public MetadataNode goToParentFolder(String path) {
+        int p=path.lastIndexOf("/");
+        String parentPath=path.substring(0, p+1);
+        return goToActualNode(parentPath);
+    }
+
     public MetadataNode goToActualNode(String path) {
         List<String> pathSplit = new LinkedList<>(Arrays.asList(path.split("/")));
+        if (path.equals("/")) {
+            return root;
+        }
         MetadataNode node = root;
         pathSplit.remove(0);
         for (String next : pathSplit) {

@@ -36,7 +36,7 @@ public class AtomixUtils {
                         .build());
         Atomix atomix = builder.build();
 
-        atomix.getMembershipService().addListener(event -> System.out.println(event.toString()));
+        // atomix.getMembershipService().addListener(event -> System.out.println(event.toString()));
 
         System.out.println("Starting node: " + local_id + " @ Port: " + local_port + ".");
         return CompletableFuture.supplyAsync(() -> {

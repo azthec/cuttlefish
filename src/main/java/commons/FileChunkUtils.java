@@ -18,20 +18,25 @@ public class FileChunkUtils {
      * @param metadataTree, the metadata tree
      * @return
      */
-    public static byte[] get_file(String file_path, CrushMap crushMap, MetadataTree metadataTree) {
-        MetadataNode file_node = metadataTree.goToNode(file_path);
-        int max_file_size = 1024*1024*2* file_node.getObjects();
-        byte[] result = new byte[max_file_size];
+    public static byte[][] get_file(String file_path, CrushMap crushMap, MetadataTree metadataTree) {
+        MetadataNode file_node = metadataTree.goToActualNode(file_path);
+        if (file_node == null) {
+            System.out.println("File does not exist!");
+            return new byte[0][0];
+        }
+        int sizeOfFiles = 1024 * 1024; // 1MB
+        byte[][] result = new byte[file_node.getObjects()][];
+
         List<String> file_OIDs = file_node.getObjectsAsOIDsString();
         for (int i = 0; i < file_node.getObjects(); i++) {
             byte[] get_result = get_object(file_OIDs.get(i), crushMap);
             if (get_result == null || get_result.length <= 0) {
                 System.out.println("File getting failed");
-                return new byte[0];
+                return new byte[0][0];
             }
-            result = ArrayUtils.addAll(result, get_result);
+            result[i] = get_result;
         }
-        System.out.println("Got complete file successfully, with size: " + result.length + "bytes.");
+        System.out.println("Got complete file successfully, with size: " + result.length * 1024 * 1024 + " bytes.");
         return result;
     }
 
@@ -51,7 +56,7 @@ public class FileChunkUtils {
             System.out.println("File getting failed");
             return new byte[0];
         }
-        System.out.println("File getting returned: " + new String(get_result, StandardCharsets.UTF_8) + "\n");
+
         try {
             client.shutdown();
         } catch (InterruptedException e) {
@@ -59,8 +64,6 @@ public class FileChunkUtils {
         }
         return get_result;
     }
-//I like to name parts from 000, 001, 002
-//        String filePartName = String.format("%s_%03d", fileName, partCounter++);
 
     /**
      *
@@ -72,8 +75,14 @@ public class FileChunkUtils {
     public static boolean post_file(String local_file_path, String remote_file_path,
                                     CrushMap crushMap, MetadataTree metadataTree)
             throws IOException {
+        System.out.println("Attempting to post file " + remote_file_path);
 
-        // TODO eventually handle adding to the metadata tree
+        MetadataNode parent_node = metadataTree.goToParentFolder(remote_file_path);
+        // TODO eventually throw folder does not exist error
+        if (parent_node == null) {
+            System.out.println("Failed to post file, parent folder does not exist!");
+            return false;
+        }
 
         byte[][] data = fileToByteArrays(new File(local_file_path));
         List<String> file_OIDs = new ArrayList<>();
@@ -88,6 +97,20 @@ public class FileChunkUtils {
             }
         }
         System.out.println("Posted complete file successfully!");
+        System.out.println("Updating node at MetadataTree!");
+        MetadataNode node = metadataTree.goToActualNode(remote_file_path);
+        System.out.println(node);
+        if (node == null) {
+            System.out.println("Node does not exist, adding new node.");
+            metadataTree.goToParentFolder(remote_file_path)
+                    .addFile(remote_file_path.substring(
+                            remote_file_path.lastIndexOf("/") + 1)
+                    )
+                    .setObjects(data.length);
+        } else {
+            System.out.println("Node exists, updating data.");
+            node.setObjects(data.length);
+        }
         return true;
     }
 
@@ -164,7 +187,7 @@ public class FileChunkUtils {
      */
     public static void byteArraysToFile(byte[][] bytes, File into) {
         try {
-            FileOutputStream fos = new FileOutputStream(into, true);
+            FileOutputStream fos = new FileOutputStream(into, false);
             for (byte[] buffer : bytes) {
                 fos.write(buffer);
             }
