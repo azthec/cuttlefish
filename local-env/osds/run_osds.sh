@@ -1,5 +1,13 @@
 #!/bin/sh
 
+mkdir -p 0
+mkdir -p 1
+mkdir -p 2
+mkdir -p 3
+mkdir -p 4
+mkdir -p 5
+
+
 rm cuttlefish-1.0-SNAPSHOT-all.jar
 
 cp ../../cuttlefish/build/libs/cuttlefish-1.0-SNAPSHOT-all.jar cuttlefish-1.0-SNAPSHOT-all.jar

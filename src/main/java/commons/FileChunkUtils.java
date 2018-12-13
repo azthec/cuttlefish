@@ -83,10 +83,16 @@ public class FileChunkUtils {
             return false;
         }
 
+        MetadataNode node = metadataTree.goToActualNode(remote_file_path);
+        int version = 0;
+        if (node != null) {
+            version = node.getVersion() + 1;
+        }
+
         byte[][] data = fileToByteArrays(new File(local_file_path));
         List<String> file_OIDs = new ArrayList<>();
         for (int i = 0; i < data.length; i++) {
-            file_OIDs.add(remote_file_path + "_" + i);
+            file_OIDs.add(remote_file_path + "_" + i + "_" + version);
         }
         for (int i = 0; i < data.length; i++) {
             boolean post_result = post_object(file_OIDs.get(i), data[i], crushMap);
@@ -97,18 +103,19 @@ public class FileChunkUtils {
         }
         System.out.println("Posted complete file successfully!");
         System.out.println("Updating node at MetadataTree!");
-        MetadataNode node = metadataTree.goToActualNode(remote_file_path);
         System.out.println(node);
         if (node == null) {
             System.out.println("Node does not exist, adding new node.");
-            metadataTree.goToParentFolder(remote_file_path)
-                    .addFile(remote_file_path.substring(
-                            remote_file_path.lastIndexOf("/") + 1)
-                    )
-                    .setObjects(data.length);
+           node = metadataTree.goToParentFolder(remote_file_path)
+                   .addFile(remote_file_path.substring(
+                           remote_file_path.lastIndexOf("/") + 1)
+                   );
+            node.setObjects(data.length);
+            node.setVersion(0);
         } else {
             System.out.println("Node exists, updating data.");
             node.setObjects(data.length);
+            node.setVersion(node.getVersion() + 1);
         }
         return true;
     }

@@ -3,6 +3,11 @@
 ip="192.168.1.100"
 
 
+mkdir -p figo
+mkdir -p messi
+mkdir -p ronaldo
+
+
 rm cuttlefish-1.0-SNAPSHOT-all.jar
 
 cp ../../cuttlefish/build/libs/cuttlefish-1.0-SNAPSHOT-all.jar cuttlefish-1.0-SNAPSHOT-all.jar

@@ -14,7 +14,7 @@ import static commons.FileChunkUtils.*;
 public class Main {
     public static void main(String[] args) {
 //        testing();
-//        test_file_posting();
+        test_file_posting();
         test_file_getting();
     }
 
@@ -75,7 +75,7 @@ public class Main {
             MetadataTree meta_tree = distributed_metadata_tree.get();
             post_file(
                     "/home/azthec/IdeaProjects/cuttlefish/storage/toogood.mp4",
-                    "/test1.mp4",
+                    "/folder/tg.mp4",
                     distributed_crush_maps.get(0),
                     meta_tree
             );
@@ -103,7 +103,7 @@ public class Main {
 
         MetadataTree meta_tree = distributed_metadata_tree.get();
 
-        byte[][] file_bytes = get_file("/test1.mp4", distributed_crush_maps.get(0), meta_tree);
+        byte[][] file_bytes = get_file("/folder/tg.mp4", distributed_crush_maps.get(0), meta_tree);
 
         byteArraysToFile(file_bytes, new File("/home/azthec/IdeaProjects/cuttlefish/storage/toobad.mp4"));
 
