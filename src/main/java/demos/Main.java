@@ -42,7 +42,7 @@ public class Main {
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
 
-        System.out.println(distributed_metadata_tree.get().goToActualNode("/test.mp4").getObjects());
+        System.out.println(distributed_metadata_tree.get().goToActualNode("/test.mp4").getNumberOfChunks());
 
         atomix.stop();
     }
@@ -74,13 +74,14 @@ public class Main {
 
         try {
             MetadataTree meta_tree = distributed_metadata_tree.get();
-            post_file(
+            boolean success = post_file(
                     "/home/azthec/IdeaProjects/cuttlefish/storage/toogood.mp4",
                     "/folder/tg.mp4",
                     distributed_crush_maps.get(0),
                     meta_tree
             );
-            distributed_metadata_tree.set(meta_tree);
+            if (success)
+                distributed_metadata_tree.set(meta_tree);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -116,7 +117,6 @@ public class Main {
         }
 
         atomix.stop();
-
     }
 
 }

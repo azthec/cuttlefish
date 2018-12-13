@@ -23,11 +23,11 @@ public class FileChunkUtils {
             return new byte[0][0];
         }
         int sizeOfFiles = 1024 * 1024; // 1MB
-        byte[][] result = new byte[file_node.getObjects()][];
+        byte[][] result = new byte[file_node.getNumberOfChunks()][];
 
-        List<String> file_OIDs = file_node.getObjectsAsOIDsString();
+        List<String> file_OIDs = file_node.getChunksOidList();
         byte[] get_result = new byte[0];
-        for (int i = 0; i < file_node.getObjects(); i++) {
+        for (int i = 0; i < file_node.getNumberOfChunks(); i++) {
             get_result = get_object(file_OIDs.get(i), crushMap);
             if (get_result == null || get_result.length <= 0) {
                 System.out.println("File getting failed");
@@ -85,40 +85,41 @@ public class FileChunkUtils {
             return false;
         }
 
-        MetadataNode node = metadataTree.goToActualNode(remote_file_path);
-        int version = 0;
-        if (node != null) {
-            version = node.getVersion() + 1;
-        }
-
         byte[][] data = fileToByteArrays(new File(local_file_path));
-        List<String> file_OIDs = new ArrayList<>();
-        for (int i = 0; i < data.length; i++) {
-            file_OIDs.add(remote_file_path + "_" + i + "_" + version);
+
+        MetadataNode node = metadataTree.goToActualNode(remote_file_path);
+        System.out.println("Updating node at MetadataTree!");
+        System.out.println(node);
+        if (node == null) {
+            System.out.println("Node does not exist, adding new node.");
+            node = metadataTree.goToParentFolder(remote_file_path)
+                    .addFile(remote_file_path.substring(
+                            remote_file_path.lastIndexOf("/") + 1)
+                    );
+            node.setVersion(0);
+        } else {
+            System.out.println("Node exists, updating data.");
+            node.setVersion(node.getVersion() + 1);
         }
+        node.setNumberOfChunks(data.length);
+        node.setHash(DigestUtils.sha256Hex(new FileInputStream(local_file_path)));
+
+        List<String> file_OIDs = node.getChunksOidList();
         for (int i = 0; i < data.length; i++) {
             boolean post_result = post_object(file_OIDs.get(i), data[i], crushMap);
+            node.addChunk(
+                    new MetadataChunk(
+                            i, node.getVersion(),
+                            DigestUtils.sha256Hex(data[i]),
+                            remote_file_path
+                    )
+            );
             if (!post_result) {
                 System.out.println("Failed to post file part = " + i + " !");
                 return false;
             }
         }
         System.out.println("Posted complete file successfully!");
-        System.out.println("Updating node at MetadataTree!");
-        System.out.println(node);
-        if (node == null) {
-            System.out.println("Node does not exist, adding new node.");
-           node = metadataTree.goToParentFolder(remote_file_path)
-                   .addFile(remote_file_path.substring(
-                           remote_file_path.lastIndexOf("/") + 1)
-                   );
-            node.setVersion(0);
-        } else {
-            System.out.println("Node exists, updating data.");
-            node.setVersion(node.getVersion() + 1);
-        }
-        node.setObjects(data.length);
-        node.setHash(DigestUtils.sha256Hex(new FileInputStream(local_file_path)));
         return true;
     }
 

@@ -66,12 +66,6 @@ public class Loader {
     public MetadataTree sample_metadata_tree() {
         MetadataTree metadata_tree = new MetadataTree();
         MetadataNode root = metadata_tree.get_root();
-        root.addFile("yodel");
-        root.addFile("lookup");
-        root.addFile("blin");
-        MetadataNode iam = root.addFolder("iam");
-        iam.addFile("blyat");
-        iam.addFile("cyka");
         root.addFolder("folder");
         return metadata_tree;
     }

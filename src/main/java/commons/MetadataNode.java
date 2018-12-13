@@ -14,7 +14,8 @@ public class MetadataNode implements Comparable<MetadataNode> {
     private boolean type;
     private int version;
     private List<MetadataNode> children;
-    private int objects;
+    private int numberOfChunks;
+    private List<MetadataChunk> chunks;
     private String hash;
 
     public MetadataNode getParent() {
@@ -53,8 +54,8 @@ public class MetadataNode implements Comparable<MetadataNode> {
         return children;
     }
 
-    public int getObjects() {
-        return objects;
+    public int getNumberOfChunks() {
+        return numberOfChunks;
     }
 
     public String getHash() {
@@ -65,20 +66,32 @@ public class MetadataNode implements Comparable<MetadataNode> {
         this.hash = hash;
     }
 
-    public List<String> getObjectsAsOIDsString() {
+    public List<String> getChunksOidList() {
         List<String> result = new ArrayList<>();
-        for (int i = 0; i < objects; i++) {
+        for (int i = 0; i < numberOfChunks; i++) {
             result.add(path + "_" + i + "_" + version);
         }
         return result;
     }
 
-    public void setObjects(int objects) {
+    public void setNumberOfChunks(int numberOfChunks) {
         if (type != FOLDER) {
-            this.objects = objects;
+            this.numberOfChunks = numberOfChunks;
         } else {
             throw new IllegalArgumentException("Folders can't have contents.");
         }
+    }
+
+    public List<MetadataChunk> getChunks() {
+        return chunks;
+    }
+
+    public void setChunks(List<MetadataChunk> chunks) {
+        this.chunks = chunks;
+    }
+
+    public void addChunk(MetadataChunk chunk) {
+        this.chunks.add(chunk);
     }
 
     MetadataNode(String name, boolean type, MetadataNode parent) {
@@ -96,6 +109,7 @@ public class MetadataNode implements Comparable<MetadataNode> {
         }
 
         children = new ArrayList<>();
+        chunks = new ArrayList<>();
     }
 
     public MetadataNode addFile(String name) {
