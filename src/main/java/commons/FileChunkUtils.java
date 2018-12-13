@@ -1,6 +1,8 @@
 package commons;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,13 +112,13 @@ public class FileChunkUtils {
                    .addFile(remote_file_path.substring(
                            remote_file_path.lastIndexOf("/") + 1)
                    );
-            node.setObjects(data.length);
             node.setVersion(0);
         } else {
             System.out.println("Node exists, updating data.");
-            node.setObjects(data.length);
             node.setVersion(node.getVersion() + 1);
         }
+        node.setObjects(data.length);
+        node.setHash(DigestUtils.sha256Hex(new FileInputStream(local_file_path)));
         return true;
     }
 
@@ -157,7 +159,6 @@ public class FileChunkUtils {
         }
         return res;
     }
-
 
     /**
      * Converts a local file to a byte matrix

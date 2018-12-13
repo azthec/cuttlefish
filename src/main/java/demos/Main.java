@@ -4,6 +4,7 @@ import commons.*;
 import io.atomix.core.Atomix;
 import io.atomix.core.list.DistributedList;
 import io.atomix.core.value.AtomicValue;
+import org.apache.commons.codec.digest.DigestUtils;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -106,6 +107,13 @@ public class Main {
         byte[][] file_bytes = get_file("/folder/tg.mp4", distributed_crush_maps.get(0), meta_tree);
 
         byteArraysToFile(file_bytes, new File("/home/azthec/IdeaProjects/cuttlefish/storage/toobad.mp4"));
+
+        try {
+            System.out.println(DigestUtils.sha256Hex(new FileInputStream("/home/azthec/IdeaProjects/cuttlefish/storage/toobad.mp4")));
+            System.out.println(meta_tree.goToActualNode("/folder/tg.mp4").getHash());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         atomix.stop();
 

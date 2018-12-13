@@ -5,8 +5,8 @@ import java.util.*;
 // Indispensable
 public class MetadataNode implements Comparable<MetadataNode> {
 
-    public static boolean FILE = false;
-    public static boolean FOLDER = true;
+    static boolean FILE = false;
+    static boolean FOLDER = true;
 
     private MetadataNode parent;
     private String name;
@@ -15,6 +15,7 @@ public class MetadataNode implements Comparable<MetadataNode> {
     private int version;
     private List<MetadataNode> children;
     private int objects;
+    private String hash;
 
     public MetadataNode getParent() {
         return parent;
@@ -56,6 +57,13 @@ public class MetadataNode implements Comparable<MetadataNode> {
         return objects;
     }
 
+    public String getHash() {
+        return hash;
+    }
+
+    public void setHash(String hash) {
+        this.hash = hash;
+    }
 
     public List<String> getObjectsAsOIDsString() {
         List<String> result = new ArrayList<>();
