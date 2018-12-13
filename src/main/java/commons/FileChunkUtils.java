@@ -1,11 +1,7 @@
 package commons;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.ArrayUtils;
-
 import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,15 +24,18 @@ public class FileChunkUtils {
         byte[][] result = new byte[file_node.getObjects()][];
 
         List<String> file_OIDs = file_node.getObjectsAsOIDsString();
+        byte[] get_result = new byte[0];
         for (int i = 0; i < file_node.getObjects(); i++) {
-            byte[] get_result = get_object(file_OIDs.get(i), crushMap);
+            get_result = get_object(file_OIDs.get(i), crushMap);
             if (get_result == null || get_result.length <= 0) {
                 System.out.println("File getting failed");
                 return new byte[0][0];
             }
             result[i] = get_result;
         }
-        System.out.println("Got complete file successfully, with size: " + result.length * 1024 * 1024 + " bytes.");
+        System.out.println("Got complete file successfully, with size: "
+                + ((result.length - 1) * 1024 * 1024 + get_result.length)
+                + " bytes.");
         return result;
     }
 
@@ -146,8 +145,6 @@ public class FileChunkUtils {
         try {
             fileInputStream = new FileInputStream(file);
             res = IOUtils.toByteArray(fileInputStream);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }

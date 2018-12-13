@@ -233,8 +233,10 @@ public class EntryPoint {
         MetadataNode currNode = distributed_metadata_tree.goToNode(currDir);
         MetadataNode childNode = currNode.get(fileName);
         if(childNode != null && childNode.isFile()){
-            byte[] fileBytes = FileChunkUtils.get_file(childNode.getPath(),crushMap,distributed_metadata_tree);
-            res = getFileContent(fileBytes);
+            System.out.println("cat function is currently broken!");
+            // TODO update fileBytes and getFileContent to use get_file and byteArraysToFile from FileChunkUtils
+//            byte[] fileBytes = FileChunkUtils.get_file(childNode.getPath(),crushMap,distributed_metadata_tree);
+//            res = getFileContent(fileBytes);
         }
         else{
             if(childNode == null)
@@ -349,8 +351,9 @@ public class EntryPoint {
             //TODO create new node and use it as a file
         }
         if(n1 != null && n1.isFile() && n2 != null && n2.isFile()){
-            // do stuff here
-            byte[] source = FileChunkUtils.get_file("oid",crushMap,distributed_metadata_tree);
+            // TODO adapt function to use byteArraysToFile from FileChunkUtils
+            System.out.println("file2file function is currently not working properly");
+            byte[][] source = FileChunkUtils.get_file("oid",crushMap,distributed_metadata_tree);
 
         }
 
