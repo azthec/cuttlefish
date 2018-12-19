@@ -13,18 +13,18 @@ rm cuttlefish-1.0-SNAPSHOT-all.jar
 cp ../../cuttlefish/build/libs/cuttlefish-1.0-SNAPSHOT-all.jar cuttlefish-1.0-SNAPSHOT-all.jar
 
 cd messi/
-java -cp ../cuttlefish-1.0-SNAPSHOT-all.jar monitor.MonitorServer messi $ip 5001 2>&1 | tee -a -i log.log | sed -e 's/^/[Messi] /' &
+java -Xmx256m -cp ../cuttlefish-1.0-SNAPSHOT-all.jar monitor.MonitorServer messi $ip 5001 2>&1 | tee -a -i log.log | sed -e 's/^/[Messi] /' &
 cd ../
 
 cd ronaldo/
-java -cp ../cuttlefish-1.0-SNAPSHOT-all.jar monitor.MonitorServer ronaldo $ip 5002 2>&1 | tee -a -i log.log | sed -e 's/^/[Ronaldo] /' &
+java -Xmx256m -cp ../cuttlefish-1.0-SNAPSHOT-all.jar monitor.MonitorServer ronaldo $ip 5002 2>&1 | tee -a -i log.log | sed -e 's/^/[Ronaldo] /' &
 cd ../
 
 # wait them to boot before figo sets up initial config
 sleep 5
 
 cd figo/
-java -cp ../cuttlefish-1.0-SNAPSHOT-all.jar monitor.MonitorServer figo $ip 5000 2>&1 | tee -a -i log.log | sed -e 's/^/[Figo] /' &
+java -Xmx256m -cp ../cuttlefish-1.0-SNAPSHOT-all.jar monitor.MonitorServer figo $ip 5000 2>&1 | tee -a -i log.log | sed -e 's/^/[Figo] /' &
 cd ../
 
 
