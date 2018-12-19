@@ -15,7 +15,7 @@ import static commons.FileChunkUtils.*;
 public class Main {
     public static void main(String[] args) {
 //        testing();
-        test_file_posting();
+//        test_file_posting();
         test_file_getting();
     }
 
@@ -37,7 +37,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                "192.168.1.100", 5005, servers).join();
+                "192.168.1.65", 5005, servers).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
@@ -67,7 +67,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                "192.168.1.100", 5005, servers).join();
+                "192.168.1.65", 5010, servers).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
@@ -98,7 +98,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                "192.168.1.100", 5005, servers).join();
+                "192.168.1.65", 5010, servers).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");

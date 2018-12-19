@@ -1,6 +1,9 @@
 package storage;
 
 import com.google.protobuf.ByteString;
+import commons.*;
+import io.atomix.core.Atomix;
+import io.atomix.core.list.DistributedList;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
@@ -9,11 +12,17 @@ import protos.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 
 
 public class GRPCServer {
+    private static DistributedList<CrushMap> distributed_crush_maps;
+    private static int port;
+
     // TODO eventually read these settings from config
     public static final int CHUNK_SIZE = 1024 * 1024 * 2; // 2 MB
     public static final String DATAFOLDER = "data/";
@@ -56,11 +65,24 @@ public class GRPCServer {
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
+        port = Integer.parseInt(args[0]);
+        System.out.println("Starting gRPC: OSD" + port +  " @ Port: " + port + ".");
         final GRPCServer server = new GRPCServer();
+
+        System.err.close();
+        List<String> servers = Loader.loadServerNames();
+        String ip = InetAddress.getLocalHost().toString();
+
+        AtomixUtils atomixUtils = new AtomixUtils();
+        Atomix atomix = atomixUtils.getServer("OSD" + port,
+                "192.168.1.65", port + 100,
+                servers).join();
+
+        distributed_crush_maps = atomix.getList("maps");
+
         server.start(Integer.parseInt(args[0]));
         server.blockUntilShutdown();
     }
-
 
     static class GetHeartbeatGrpcImpl extends GetHeartbeatGrpc.GetHeartbeatImplBase {
 
@@ -103,6 +125,21 @@ public class GRPCServer {
             String oid = request.getOid();
             byte[] data = request.getData().toByteArray();
             System.out.println("Storing chunk: " + request.getOid());
+            CrushMap crushMap = distributed_crush_maps.get(0);
+            ObjectStorageNode node = FileChunkUtils.get_object_primary(oid, crushMap);
+            // TODO improve this logic to use OSD PG's
+            if (node != null && node.port == port) {
+                for (int i = 0; i < Crush.numberOfReplicas; i++) {
+                    boolean success = FileChunkUtils.post_object(oid, data, crushMap, i + 1);
+                    if (!success) {
+                        responseObserver.onNext(ChunkPostReply.newBuilder()
+                                .setState(false)
+                                .build());
+                        responseObserver.onCompleted();
+                        System.out.println("Testing if response observer onCompleted terminates execution.");
+                    }
+                }
+            }
             try {
                 FileUtils.writeByteArrayToFile(new File(DATAFOLDER + oid), data);
                 responseObserver.onNext(ChunkPostReply.newBuilder()

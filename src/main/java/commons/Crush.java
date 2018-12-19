@@ -11,6 +11,9 @@ public class Crush {
 
     private int p = 14981273;
 
+    // numberOfReplicas depends directly on the selection rule
+    // in this case rule returns one primary OSD and one replica OSD
+    public static int numberOfReplicas = 1;
     public List<CrushNode> select_OSDs(CrushNode root, String oid) {
         // This is the equivalent to Crush selection rules
         // Assumes CrushMap structure follows root - row - osd scheme.

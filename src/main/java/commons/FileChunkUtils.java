@@ -7,6 +7,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 
 public class FileChunkUtils {
     /**
@@ -44,14 +45,14 @@ public class FileChunkUtils {
     public static byte[] get_object(String oid, CrushMap crushMap) {
         System.out.println("Getting object with ID: " + oid);
 
-        // TODO change this to randomly use one of the OSD's in get_object_osds
-        ObjectStorageNode primary = get_object_primary(oid, crushMap);
-        if (primary == null) {
-            System.out.println("Failed to find primary for object: " + oid);
+//        ObjectStorageNode primary = get_object_primary(oid, crushMap);
+        ObjectStorageNode node = get_random_object_osd(oid, crushMap);
+        if (node == null) {
+            System.out.println("Failed to find node for object: " + oid);
             return new byte[0];
         }
-
-        FileChunkClient client = new FileChunkClient(primary.ip, primary.port);
+        System.out.println("Getting from node: " + node.id);
+        FileChunkClient client = new FileChunkClient(node.ip, node.port);
         byte [] get_result = client.getChunk(oid);
         if (get_result == null || get_result.length <= 0) {
             System.out.println("File getting failed");
@@ -144,6 +145,33 @@ public class FileChunkUtils {
         return post_result;
     }
 
+    public static boolean post_object(String oid, byte[] data, CrushMap crushMap, int replicaNumber) {
+        System.out.println("Posting object with ID: " + oid + " to replica #" + replicaNumber);
+        ObjectStorageNode node = null;
+        try {
+            node = get_object_osds(oid, crushMap).get(replicaNumber);
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Failed to find replica for object: " + oid);
+            return false;
+        }
+
+        if (node == null) {
+            System.out.println("Failed to find replica for object (node == null): " + oid);
+            return false;
+        }
+
+        FileChunkClient client = new FileChunkClient(node.ip, node.port);
+        System.out.println("Posting object: " + oid + " | with data: " + data);
+        boolean post_result = client.postChunk(oid, data);
+        System.out.println("File posting returned: " + post_result + "\n");
+        try {
+            client.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return post_result;
+    }
+
     /**
      * Converts a local file to a byte array, that we can transmit
      * @param file
@@ -222,6 +250,16 @@ public class FileChunkUtils {
             result.add(hashMap.get("" + node.nodeID));
         }
         return result;
+    }
+
+    public static ObjectStorageNode get_random_object_osd(String oid, CrushMap crushMap) {
+        Random random = new java.util.Random();
+        List<ObjectStorageNode> result_list = get_object_osds(oid, crushMap);
+        if (result_list.size() > 0) {
+            return result_list.get(random.nextInt(result_list.size()));
+        } else {
+            return null;
+        }
     }
 
     public static ObjectStorageNode get_object_primary(String oid, CrushMap crushMap) {

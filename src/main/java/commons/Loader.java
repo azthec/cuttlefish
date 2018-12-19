@@ -70,7 +70,7 @@ public class Loader {
         return metadata_tree;
     }
 
-    public List<String> loadServerNames(){
+    public static List<String> loadServerNames(){
         ArrayList<String> servers = new ArrayList<>();
         servers.add("figo");
         servers.add("messi");
