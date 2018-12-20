@@ -1,6 +1,7 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '4.0.2'
     id 'java'
+    id 'com.github.johnrengelman.shadow' version '4.0.2'
+    id 'com.google.protobuf' version '0.8.7'
 }
 
 group 'org.teamdoubleb'
@@ -12,8 +13,24 @@ repositories {
     mavenCentral()
 }
 
+configurations.all {
+//    resolutionStrategy.failOnVersionConflict()
+    resolutionStrategy {
+        // must be specifified for version conflict resolution
+        // or program will misbehave
+        force 'com.google.guava:guava:22.0'
+    }
+}
+
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    // Common libraries
+    compile group: 'commons-codec', name: 'commons-codec', version: '1.9'
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+
+    // json
+    compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1'
 
     // Jetty
     compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.4.12.v20180830'
@@ -27,10 +44,54 @@ dependencies {
     compile group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version: '2.27'
 
     //Atomix dependency
-    compile group: 'org.slf4j', name: 'slf4j-jdk14', version: '1.7.25'
+    compile group: 'org.slf4j', name: 'slf4j-jdk14', version: '1.7.7'
     //Atomix
-    compile group: 'io.atomix', name: 'atomix', version: '3.0.7'
-    compile group: 'io.atomix', name: 'atomix-raft', version: '3.0.7'
-    compile group: 'io.atomix', name: 'atomix-primary-backup', version: '3.0.7'
-    compile group: 'io.atomix', name: 'atomix-gossip', version: '3.0.7'
+    compile group: 'io.atomix', name: 'atomix', version: '3.0.8'
+    compile group: 'io.atomix', name: 'atomix-raft', version: '3.0.8'
+    compile group: 'io.atomix', name: 'atomix-primary-backup', version: '3.0.8'
+    compile group: 'io.atomix', name: 'atomix-gossip', version: '3.0.8'
+
+    // Protobuf && Protoc
+    // compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.6.1'
+
+    compile group: 'io.grpc', name: 'grpc-core', version: '1.16.1'
+    compile group: 'io.grpc', name: 'grpc-netty-shaded', version: '1.16.1'
+    compile group: 'io.grpc', name: 'grpc-protobuf', version: '1.16.1'
+    compile group: 'io.grpc', name: 'grpc-stub', version: '1.16.1'
+}
+
+sourceSets {
+    main {
+        proto {
+            srcDir 'src/main/proto'
+        }
+        java {
+            // include self written and generated code
+            srcDirs 'src/main/java', 'generated-sources/main/java', 'generated-sources/main/grpc'
+        }
+    }
+    // remove the test configuration - at least in your example you don't have a special test proto file
+}
+
+protobuf {
+    // Configure the protoc executable
+    protoc {
+        // Download from repositories
+        artifact = 'com.google.protobuf:protoc:3.6.1'
+    }
+    plugins {
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.16.1'
+        }
+    }
+
+    generateProtoTasks.generatedFilesBaseDir = 'generated-sources'
+
+    generateProtoTasks {
+        all()*.plugins {
+            grpc {}
+        }
+
+        ofSourceSet('main')
+    }
 }

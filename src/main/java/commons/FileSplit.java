@@ -1,9 +1,30 @@
+package commons;
+
+import protos.ChunkData;
+
 import java.io.*;
 import java.nio.file.Files;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.List;
 
 class FileSplit {
+    public byte[] createSha1(File file) throws Exception  {
+        MessageDigest digest = MessageDigest.getInstance("SHA-1");
+        InputStream fis = new FileInputStream(file);
+        int n = 0;
+        byte[] buffer = new byte[8192];
+        while (n != -1) {
+            n = fis.read(buffer);
+            if (n > 0) {
+                digest.update(buffer, 0, n);
+            }
+        }
+        return digest.digest();
+    }
+
+
+
     public static void splitFile(File f) throws IOException {
         int partCounter = 1;//I like to name parts from 001, 002, 003, ...
         //you can change it to 0 if you want 000, 001, ...
@@ -20,7 +41,7 @@ class FileSplit {
             int bytesAmount;
             while ((bytesAmount = bis.read(buffer)) > 0) {
                 //write each chunk of data into separate file with different number in name
-                String filePartName = String.format("%s.%03d", fileName, partCounter++);
+                String filePartName = String.format("%s_%03d", fileName, partCounter++);
                 File newFile = new File(f.getParent(), filePartName);
                 try (FileOutputStream out = new FileOutputStream(newFile)) {
                     out.write(buffer, 0, bytesAmount);
@@ -28,6 +49,32 @@ class FileSplit {
             }
         }
     }
+
+    /**
+     * TODO review this method
+     * Chunk merging to form a file
+     * @param chunks the list of chunks, assumed ordered.
+     * @param targetFile the file where we write to.
+     */
+    public static String mergeChunks(List<ChunkData> chunks, File targetFile){
+        String dataString = "";
+        for(ChunkData chunk: chunks){
+            dataString += chunk.getData();
+        }
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(targetFile.getName(), "UTF-8");
+            writer.println(dataString);
+            writer.flush();
+            writer.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return dataString;
+    }
+
 
     public static void mergeFiles(List<File> files, File into)
             throws IOException {
