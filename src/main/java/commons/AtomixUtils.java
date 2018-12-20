@@ -25,13 +25,13 @@ public class AtomixUtils {
                 .withManagementGroup(RaftPartitionGroup.builder("system")
                         .withNumPartitions(1)
                         .withDataDirectory(new File("mngdir", local_id))
-                        .withStorageLevel(StorageLevel.MEMORY)
+                        .withStorageLevel(StorageLevel.DISK)
                         .withMembers(servers)
                         .build())
                 .addPartitionGroup(RaftPartitionGroup.builder("data")
                         .withNumPartitions(1)
                         .withDataDirectory(new File("datadir", local_id))
-                        .withStorageLevel(StorageLevel.MEMORY)
+                        .withStorageLevel(StorageLevel.DISK)
                         .withMembers(servers)
                         .build());
         Atomix atomix = builder.build();

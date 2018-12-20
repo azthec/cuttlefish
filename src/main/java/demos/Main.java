@@ -9,6 +9,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static commons.FileChunkUtils.*;
 
@@ -16,6 +17,11 @@ public class Main {
     public static void main(String[] args) {
 //        testing();
 //        test_file_posting();
+//        try {
+//            TimeUnit.SECONDS.sleep(5);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
         test_file_getting();
     }
 

@@ -99,6 +99,7 @@ public class MonitorServer {
         }
 
         distributed_crush_maps.get(0).print();
+        distributed_metadata_tree.get().print();
 
         // TODO uncomment this when implementing OSD failure tolerance
         // If RAFT leader manage OSD hearbeats and update CrushMap
