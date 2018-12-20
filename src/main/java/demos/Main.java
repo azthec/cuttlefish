@@ -6,9 +6,12 @@ import io.atomix.core.Atomix;
 import io.atomix.core.list.DistributedList;
 import io.atomix.core.value.AtomicValue;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -19,15 +22,51 @@ public class Main {
     public static void main(String[] args) {
 //        test_loader();
 //        testing();
-//        test_file_posting();
-//        // if creating new atomix node with same name needs to wait for timeout
-//        try {
-//            TimeUnit.SECONDS.sleep(5);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        test_file_getting();
-        test_serialize();
+        test_file_posting();
+        // if creating new atomix node with same name needs to wait for timeout
+        try {
+            TimeUnit.SECONDS.sleep(5);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        test_file_getting();
+//        test_serialize();
+    }
+
+    public static void crush_poc() {
+        Loader loader = new Loader();
+        CrushMap cluster_map = loader.sample_crush_map();
+
+        Crush crush = new Crush();
+
+        // test_select_randomness(crush, cluster_map.get_root());
+        // System.out.println(crush.select_OSDs(cluster_map.get_root(), "1337"));
+
+        // this maps an object to a placement group
+        int total_pgs = 255;
+        int pg = Crush.get_pg_id("1337", total_pgs);
+        System.out.println("PG: " + pg);
+
+        // this maps a placement group to OSD's
+        System.out.println(crush.select_OSDs(cluster_map.get_root(), "" + pg));
+
+    }
+
+    public static void test_select_randomness(Crush crush, CrushNode root) {
+        int[] counters = new int[6];
+        List<CrushNode> git = new ArrayList<>();
+        List<CrushNode> root_list = new ArrayList<>();
+        root_list.add(root);
+        for (int i = 0; i<1000000; i++) {
+            String oid = RandomStringUtils.random(32);
+            BigInteger oid_bint = Crush.hash(oid);
+            List<CrushNode> got = crush.select(2, "row", root_list, oid_bint);
+            git = crush.select(1, "osd", got, oid_bint);
+            for (CrushNode j : git) {
+                counters[j.nodeID]++;
+            }
+        }
+        System.out.println(Arrays.toString(counters));
     }
 
     public static void test_object_grpc_with_crushmap() {

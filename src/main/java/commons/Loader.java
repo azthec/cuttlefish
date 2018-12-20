@@ -79,7 +79,8 @@ public class Loader {
     }
 
     public static String loadPersistentStoragePath() {
-        return System.getProperty("user.home");
-//        return "/opt/";
+        // TODO change this to System.getProperty when not running scripts
+//        return System.getProperty("user.home");
+        return "persistdata";
     }
 }

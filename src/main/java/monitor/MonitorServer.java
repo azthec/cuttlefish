@@ -3,6 +3,7 @@ package monitor;
 import commons.*;
 
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -17,12 +18,13 @@ import io.atomix.core.map.DistributedMap;
 import io.atomix.core.value.AtomicValue;
 import org.apache.commons.lang3.RandomStringUtils;
 
+import static monitor.PersistentStorage.*;
+
 
 public class MonitorServer {
 
     public static void main(String[] args) {
         run_raft(args);
-//        crush_poc();
     }
 
 
@@ -39,6 +41,11 @@ public class MonitorServer {
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer(local_id, local_ip, local_port, servers).join();
 
+        if(servers.size() < 3) {
+            System.err.println("Program requires at least three members to function.");
+            System.exit(1);
+        }
+
         System.out.println("Created raft group!");
         System.out.println(atomix.getMembershipService().getMembers().toString());
 
@@ -50,8 +57,15 @@ public class MonitorServer {
                     System.out.println("Entry added: (" + event.element() + ")" +
                             " | @ epoch: " + event.element().map_epoch);
                     event.element().print();
+                    try {
+                        storeMaps(Loader.loadPersistentStoragePath(), distributed_crush_maps);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        System.err.println("Failed to save metadata update!");
+                    }
                     break;
                 case REMOVE:
+                    // Realistically, cmaps should never be removed.
                     System.out.println("Entry removed: (" + event.element() +")" +
                             " | @ epoch: " + event.element().map_epoch);
                     event.element().print();
@@ -70,9 +84,50 @@ public class MonitorServer {
                 case UPDATE:
                     System.out.println("Metadata tree updated: (" + event.newValue() + ")");
                     event.newValue().print();
+                    try {
+                        storeMetadata(Loader.loadPersistentStoragePath(), distributed_metadata_tree);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        System.err.println("Failed to save metadata update!");
+                    }
                     break;
             }
         });
+
+
+        // -- Persistent boot logic --
+
+        // Load stored data
+        ArrayList<CrushMap> storedCrushMaps;
+        MetadataTree storedMetadataTree;
+        try {
+            storedCrushMaps = getPersistentMaps(Loader.loadPersistentStoragePath());
+            storedMetadataTree = getPersistentMetadata(Loader.loadPersistentStoragePath());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Failed to load persistent data!");
+            atomix.stop();
+            return;
+        }
+
+
+        // Create access to clusters cmap and mdata stored versions
+        // TODO change boot logic to support dynamic number and naming of servers (# >= 3)
+        DistributedMap<String, Integer> mdataVers = atomix.getMap("mdataVers");
+        DistributedMap<String, Integer> cmapsVers = atomix.getMap("cmapsVers");
+
+        mdataVers.put(local_id, storedCrushMaps.size());
+        cmapsVers.put(local_id, storedMetadataTree.epoch);
+
+        while(distributed_crush_maps.size() == 0 && distributed_metadata_tree.get() == null) {
+            try {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+
 
         Loader loader = new Loader();
         if (local_id.equals("figo")) {
@@ -135,43 +190,6 @@ public class MonitorServer {
         for (ObjectStorageNode node : object_nodes) {
             distributed_object_nodes.put(Integer.toString(node.id), node);
         }
-    }
-
-
-    public static void crush_poc() {
-        Loader loader = new Loader();
-        CrushMap cluster_map = loader.sample_crush_map();
-
-        Crush crush = new Crush();
-
-        // test_select_randomness(crush, cluster_map.get_root());
-        // System.out.println(crush.select_OSDs(cluster_map.get_root(), "1337"));
-
-        // this maps an object to a placement group
-        int total_pgs = 255;
-        int pg = Crush.get_pg_id("1337", total_pgs);
-        System.out.println("PG: " + pg);
-
-        // this maps a placement group to OSD's
-        System.out.println(crush.select_OSDs(cluster_map.get_root(), "" + pg));
-
-    }
-
-    public static void test_select_randomness(Crush crush, CrushNode root) {
-        int[] counters = new int[6];
-        List<CrushNode> git = new ArrayList<>();
-        List<CrushNode> root_list = new ArrayList<>();
-        root_list.add(root);
-        for (int i = 0; i<1000000; i++) {
-            String oid = RandomStringUtils.random(32);
-            BigInteger oid_bint = Crush.hash(oid);
-            List<CrushNode> got = crush.select(2, "row", root_list, oid_bint);
-            git = crush.select(1, "osd", got, oid_bint);
-            for (CrushNode j : git) {
-                counters[j.nodeID]++;
-            }
-        }
-        System.out.println(Arrays.toString(counters));
     }
 
 }
