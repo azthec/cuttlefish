@@ -42,7 +42,7 @@ public class Main {
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
 
-        System.out.println(distributed_metadata_tree.get().goToActualNode("/test.mp4").getNumberOfChunks());
+        System.out.println(distributed_metadata_tree.get().goToNode("/test.mp4").getNumberOfChunks());
 
         atomix.stop();
     }
@@ -111,7 +111,7 @@ public class Main {
 
         try {
             System.out.println(DigestUtils.sha256Hex(new FileInputStream("/home/azthec/IdeaProjects/cuttlefish/storage/toobad.mp4")));
-            System.out.println(meta_tree.goToActualNode("/folder/tg.mp4").getHash());
+            System.out.println(meta_tree.goToNode("/folder/tg.mp4").getHash());
         } catch (IOException e) {
             e.printStackTrace();
         }

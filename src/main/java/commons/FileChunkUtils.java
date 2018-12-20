@@ -19,7 +19,7 @@ public class FileChunkUtils {
      * @return
      */
     public static byte[][] get_file(String file_path, CrushMap crushMap, MetadataTree metadataTree) {
-        MetadataNode file_node = metadataTree.goToActualNode(file_path);
+        MetadataNode file_node = metadataTree.goToNode(file_path);
         if (file_node == null) {
             System.out.println("File does not exist!");
             return new byte[0][0];
@@ -89,7 +89,7 @@ public class FileChunkUtils {
 
         byte[][] data = fileToByteArrays(new File(local_file_path));
 
-        MetadataNode node = metadataTree.goToActualNode(remote_file_path);
+        MetadataNode node = metadataTree.goToNode(remote_file_path);
         System.out.println("Updating node at MetadataTree!");
         System.out.println(node);
         if (node == null) {

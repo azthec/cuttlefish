@@ -3,6 +3,7 @@ package app;
 import commons.FileChunkUtils;
 import commons.MetadataNode;
 import commons.ObjectStorageNode;
+import exceptions.InvalidNodeException;
 import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -339,24 +340,16 @@ public class EntryPoint {
     private String file2file(String file1, String file2, String currPath){
 
         String res = "";
-        MetadataNode currNode = distributed_metadata_tree.goToNode(currPath);
-        MetadataNode n1 = currNode.get(file1);
-        MetadataNode n2 = currNode.get(file2);
-
-        if(n1 == null || n1.isFolder())
-            res += "\nSource is either null or a folder";
-        if(n2.isFolder())
-            res += "\nTarget is a folder";
-        if(n2 == null) {
-            //TODO create new node and use it as a file
-        }
-        if(n1 != null && n1.isFile() && n2 != null && n2.isFile()){
-            // TODO adapt function to use byteArraysToFile from FileChunkUtils
-            System.out.println("file2file function is currently not working properly");
-            byte[][] source = FileChunkUtils.get_file("oid",crushMap,distributed_metadata_tree);
-
+        Boolean operation = false;
+        try {
+            operation = FileChunkUtils.copyChunks(file1, file2, crushMap, distributed_metadata_tree);
+        } catch (InvalidNodeException e) {
+            System.out.println("Exception:");
+            e.printStackTrace();
         }
 
+        if(!operation)
+            res = "Check for any InvalidNodeException(s), redirect failed";
 
         return res;
     }
