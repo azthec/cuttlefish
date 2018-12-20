@@ -1,11 +1,12 @@
 package commons;
 
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-public class MetadataTree {
+public class MetadataTree implements Serializable {
 
     private MetadataNode root;
 

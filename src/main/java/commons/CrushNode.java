@@ -1,11 +1,12 @@
 package commons;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 
-public class CrushNode {
+public class CrushNode implements Serializable {
     // uniform buckets don't have weights, I think
     public int nodeID;
     public String type;

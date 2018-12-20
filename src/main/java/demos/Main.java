@@ -1,5 +1,6 @@
 package demos;
 
+import com.google.gson.Gson;
 import commons.*;
 import io.atomix.core.Atomix;
 import io.atomix.core.list.DistributedList;
@@ -9,14 +10,24 @@ import org.apache.commons.codec.digest.DigestUtils;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static commons.FileChunkUtils.*;
+import static monitor.PersistentStorage.*;
 
 public class Main {
     public static void main(String[] args) {
+//        test_loader();
 //        testing();
 //        test_file_posting();
-        test_file_getting();
+//        // if creating new atomix node with same name needs to wait for timeout
+//        try {
+//            TimeUnit.SECONDS.sleep(5);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        test_file_getting();
+        test_serialize();
     }
 
     public static void test_object_grpc_with_crushmap() {
@@ -117,6 +128,63 @@ public class Main {
         }
 
         atomix.stop();
+    }
+
+    public static void test_serialize() {
+//        System.err.close();
+        List<String> servers = new ArrayList<>();
+        servers.add("figo");
+        servers.add("messi");
+        servers.add("ronaldo");
+
+        AtomixUtils atomixUtils = new AtomixUtils();
+        Atomix atomix = atomixUtils.getServer("appclient",
+                "192.168.1.65", 5010, servers).join();
+
+        DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
+        AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
+
+        try {
+            storeMaps(Loader.loadPersistentStoragePath(), distributed_crush_maps);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        ArrayList<CrushMap> loaded_maps = null;
+        try {
+            loaded_maps = loadMaps(Loader.loadPersistentStoragePath());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        if (loaded_maps != null) {
+            loaded_maps.get(0).print();
+        }
+
+        try {
+            storeMetadata(Loader.loadPersistentStoragePath(), distributed_metadata_tree);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        MetadataTree loaded_mdata = null;
+        try {
+            loaded_mdata = loadMetadata(Loader.loadPersistentStoragePath());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        if (loaded_mdata != null) {
+            loaded_mdata.print();
+        }
+
+        atomix.stop();
+    }
+
+    public  static void test_loader() {
+        System.out.println(Loader.loadPersistentStoragePath());
     }
 
 }

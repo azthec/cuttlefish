@@ -1,9 +1,10 @@
 package commons;
 
+import java.io.Serializable;
 import java.util.*;
 
 // Indispensable
-public class MetadataNode implements Comparable<MetadataNode> {
+public class MetadataNode implements Comparable<MetadataNode>, Serializable {
 
     static boolean FILE = false;
     static boolean FOLDER = true;

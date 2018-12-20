@@ -77,4 +77,9 @@ public class Loader {
         servers.add("ronaldo");
         return servers;
     }
+
+    public static String loadPersistentStoragePath() {
+        return System.getProperty("user.home");
+//        return "/opt/";
+    }
 }

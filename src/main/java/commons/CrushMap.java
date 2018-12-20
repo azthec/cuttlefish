@@ -17,6 +17,7 @@ package commons;
  * devices (CRUSH).
  */
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +28,7 @@ import java.util.List;
  *
  * Devices are always at the leaves.
  */
-public class CrushMap {
+public class CrushMap implements Serializable {
     public int map_epoch;
     public int total_pgs;
     public CrushNode root;

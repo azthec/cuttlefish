@@ -1,6 +1,8 @@
 package commons;
 
-public class MetadataChunk {
+import java.io.Serializable;
+
+public class MetadataChunk implements Serializable {
     public int getId() {
         return id;
     }
