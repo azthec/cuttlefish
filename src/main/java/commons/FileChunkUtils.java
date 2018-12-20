@@ -1,5 +1,6 @@
 package commons;
 
+import exceptions.InvalidNodeException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 
@@ -271,5 +272,76 @@ public class FileChunkUtils {
         }
     }
 
+    private static MetadataNode getParentFromAbsPath(String path, MetadataTree metadataTree){
+        String[] pathParted = path.split("/");
+        MetadataNode currNode = metadataTree.get_root();
+        // in case someone sends the root
+        if(pathParted.length > 0){
+            for(int i=0; i<pathParted.length-1; i++){
+                currNode = currNode.get(pathParted[i]);
+            }
+        }
+        return currNode;
+    }
+
+    /**
+     * TODO swap the error prints with exceptions
+     * Copies the chunks of f1 to f2
+     * Used as the implementation of the ">" command
+     * @param f1 the absolute path of the source file
+     * @param f2 the absolute path of the dest file
+     * @return a boolean indicating the success of the operation
+     */
+    @SuppressWarnings("Duplicates")
+    public static boolean copyChunks(String f1, String f2, CrushMap crushMap, MetadataTree metadataTree) throws InvalidNodeException {
+
+        MetadataNode n1 = metadataTree.goToNode(f1);
+        MetadataNode n2 = metadataTree.goToNode(f2);
+
+        if (n1 == null ) {
+            throw new InvalidNodeException("The source MetadataNode is null.");
+        } else if (n1 != null && n1.isFolder()){
+            throw new InvalidNodeException("The source MetadataNode is a folder.");
+        } else if (n2 != null && n2.isFolder()){
+            throw new InvalidNodeException("The destination MetadataNode is a folder.");
+        } else if (n2 == null) {
+            System.out.println("The destination is null, checking for parent folder");
+            MetadataNode n2Parent = getParentFromAbsPath(f2, metadataTree);
+            if (n2Parent == null){
+                throw new InvalidNodeException("The parent of the destination MetadataNode is null");
+            }
+            else{
+                System.out.println("The parent node exists, creating the destination node.");
+                n2Parent.addFile(f2);
+            }
+        }
+
+        System.out.println("Everything is in order, starting copy");
+        //--------------------------------------------------------
+        if(n1 != null && n1.isFile() && n2 != null && n2.isFile()){
+            byte[][] source = FileChunkUtils.get_file(n1.getPath(),crushMap,metadataTree);
+            // MetadataNode node = metadataTree.goToNode(f2); node is n2
+            File into = new File(f2);
+            FileChunkUtils.byteArraysToFile(source, into);
+            // chunk replacing (post from f1 to f2)
+            try {
+                n2.setNumberOfChunks(source.length);
+                n2.setHash(DigestUtils.sha256Hex(new FileInputStream(f2)));
+                List<String> file_OIDs = n1.getChunksOidList();
+                for (int i=0; i<source.length; i++){
+                    boolean postResult = post_object(file_OIDs.get(i),source[i],crushMap);
+                    n2.addChunk(new MetadataChunk(i, n2.getVersion(), DigestUtils.sha256Hex(source[i]), f2));
+                    if(!postResult){
+                        System.out.println("Failed to post file part = " + i + " !");
+                        return false;
+                    }
+                }
+                n2.setVersion(n2.getVersion() + 1);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return true;
+    }
 
 }
