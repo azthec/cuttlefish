@@ -4,7 +4,6 @@ import commons.CrushMap;
 import commons.MetadataTree;
 import io.atomix.core.list.DistributedList;
 import io.atomix.core.value.AtomicValue;
-import io.grpc.Metadata;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -12,13 +11,25 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.List;
+
 
 public class PersistentStorage {
     private static String storageDir = "/.cuttlefish/";
 
-    public static void initializePersistentMaps(String path) {
+    public static ArrayList<CrushMap> getPersistentMaps(String path) throws IOException {
+        try {
+            return loadMaps(path);
+        } catch (FileNotFoundException e) {
+            return new ArrayList<CrushMap>();
+        }
+    }
 
+    public static MetadataTree getPersistentMetadata(String path) throws IOException {
+        try {
+            return loadMetadata(path);
+        } catch (FileNotFoundException e) {
+            return new MetadataTree();
+        }
     }
 
     public static void storeMaps(String path, DistributedList<CrushMap> distributed_crush_maps) throws IOException {
@@ -61,7 +72,7 @@ public class PersistentStorage {
         if (cmaps_file.exists() && !folder.isDirectory()) {
             throw new IOException("CrushMap storage exists, but is not a file!");
         }  else if (!cmaps_file.exists()) {
-            throw new IOException("CrushMap storage does not exist!");
+            throw new FileNotFoundException("CrushMap storage does not exist!");
         }
 
         FileInputStream fin = new FileInputStream(folder_path + "cmaps.ser");
@@ -116,7 +127,7 @@ public class PersistentStorage {
         if (mdata_file.exists() && !folder.isDirectory()) {
             throw new IOException("Metadata storage exists, but is not a file!");
         }  else if (!mdata_file.exists()) {
-            throw new IOException("Metadata storage does not exist!");
+            throw new FileNotFoundException("Metadata storage does not exist!");
         }
 
         FileInputStream fin = new FileInputStream(folder_path + "mdata.ser");
