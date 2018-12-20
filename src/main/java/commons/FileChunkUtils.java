@@ -105,6 +105,7 @@ public class FileChunkUtils {
         }
         node.setNumberOfChunks(data.length);
         node.setHash(DigestUtils.sha256Hex(new FileInputStream(local_file_path)));
+        metadataTree.epoch += 1;
 
         List<String> file_OIDs = node.getChunksOidList();
         for (int i = 0; i < data.length; i++) {
@@ -341,6 +342,7 @@ public class FileChunkUtils {
                 e.printStackTrace();
             }
         }
+        metadataTree.epoch += 1;
         return true;
     }
 

@@ -127,6 +127,7 @@ public class EntryPoint {
             else if (newNode.isFile())
                 res = "That's an already existing file...";
         } else if (newNode == null){
+            distributed_metadata_tree.epoch += 1;
             // TODO insert the comms with the OSD's to create a folder here.
             //currNode.addFolder(newFoldername);
             byte[] newDirBytes = FileChunkUtils.fileToByteArray(new File(newFoldername));
@@ -166,9 +167,10 @@ public class EntryPoint {
                 return "Can't delete the folder you are in...";
             else{
                 parentOfFolder.remove(fname);
-                if(nodeToDelete == null)
+                if(nodeToDelete == null) {
+                    distributed_metadata_tree.epoch += 1;
                     return "";
-                else
+                } else
                     return "Couldn't delete the folder...";
             }
         }
@@ -185,9 +187,10 @@ public class EntryPoint {
                 return  "Folder's not empty...";
             else if(targetNode.isFolder() && targetNode.isLeaf()){
                 parentOfTarget.remove(targetNode.getName());
-                if(targetNode == null)
+                if(targetNode == null) {
+                    distributed_metadata_tree.epoch += 1;
                     return "";
-                else
+                } else
                     return "Couldn't delete the folder";
             }
         }

@@ -10,8 +10,11 @@ public class MetadataTree implements Serializable {
 
     private MetadataNode root;
 
+    public int epoch;
+
     public MetadataTree() {
         root = new MetadataNode("root", MetadataNode.FOLDER, null);
+        epoch = 0;
     }
 
     public MetadataNode get_root() {
