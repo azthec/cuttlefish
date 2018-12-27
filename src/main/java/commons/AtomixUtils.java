@@ -1,5 +1,7 @@
 package commons;
 
+import io.atomix.cluster.Node;
+import io.atomix.cluster.discovery.BootstrapDiscoveryProvider;
 import io.atomix.core.Atomix;
 import io.atomix.core.AtomixBuilder;
 import io.atomix.protocols.raft.partition.RaftPartitionGroup;
@@ -20,8 +22,24 @@ public class AtomixUtils {
         AtomixBuilder builder = Atomix.builder();
         builder.withMemberId(local_id)
                 .withAddress(local_ip, local_port)
-                .withMulticastEnabled()
-                .withMulticastAddress(new Address("230.4.20.69", 8008))
+//                .withMulticastEnabled()
+//                .withMulticastAddress(new Address("230.4.20.69", 8008))
+                .withClusterId("boladouro")
+                .withMembershipProvider(BootstrapDiscoveryProvider.builder()
+                        .withNodes(
+                                Node.builder()
+                                        .withId("figo")
+                                        .withAddress("10.132.0.2:5000")
+                                        .build(),
+                                Node.builder()
+                                        .withId("messi")
+                                        .withAddress("10.132.0.3:5000")
+                                        .build(),
+                                Node.builder()
+                                        .withId("ronaldo")
+                                        .withAddress("10.132.0.4:5000")
+                                        .build())
+                        .build())
                 .withManagementGroup(RaftPartitionGroup.builder("system")
                         .withNumPartitions(1)
                         .withDataDirectory(new File("mngdir", local_id))
