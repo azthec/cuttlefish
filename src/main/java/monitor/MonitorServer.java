@@ -22,7 +22,6 @@ public class MonitorServer {
 
     public static void main(String[] args) {
         run_raft(args);
-//        crush_poc();
     }
 
 
@@ -30,14 +29,9 @@ public class MonitorServer {
         String local_id = args[0];
         String local_ip = args[1];
         int local_port = Integer.parseInt(args[2]);
-        // Raft requires a static membership list
-        List<String> servers = new ArrayList<>();
-        servers.add("figo");
-        servers.add("messi");
-        servers.add("ronaldo");
 
         AtomixUtils atomixUtils = new AtomixUtils();
-        Atomix atomix = atomixUtils.getServer(local_id, local_ip, local_port, servers).join();
+        Atomix atomix = atomixUtils.getServer(local_id, local_ip, local_port).join();
 
         System.out.println("Created raft group!");
         System.out.println(atomix.getMembershipService().getMembers().toString());
@@ -134,7 +128,7 @@ public class MonitorServer {
     public static void register_object_nodes(DistributedMap<String,ObjectStorageNode> distributed_object_nodes,
                                              List<ObjectStorageNode> object_nodes) {
         for (ObjectStorageNode node : object_nodes) {
-            distributed_object_nodes.put(Integer.toString(node.id), node);
+            distributed_object_nodes.put(node.id, node);
         }
     }
 

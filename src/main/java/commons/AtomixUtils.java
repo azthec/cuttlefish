@@ -15,11 +15,10 @@ import java.util.concurrent.CompletableFuture;
 
 public class AtomixUtils {
 
-    // todo load List<String> servers from config file
-    // local_id not in server list -> client
     public CompletableFuture<Atomix> getServer(String local_id, String local_ip,
-                                                      int local_port,
-                                                      List<String> servers) {
+                                                      int local_port) {
+        // Raft requires a static membership list
+        List<String> servers = Loader.loadServerNames();
         HashMap<String, String> monitors = Loader.sample_monitors();
         AtomixBuilder builder = Atomix.builder();
         builder.withMemberId(local_id)

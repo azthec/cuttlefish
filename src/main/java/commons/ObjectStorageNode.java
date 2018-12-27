@@ -1,11 +1,11 @@
 package commons;
 
 public class ObjectStorageNode {
-    public int id;
+    public String id;
     public String ip;
     public int port;
 
-    public ObjectStorageNode(int id, String ip, int port) {
+    public ObjectStorageNode(String id, String ip, int port) {
         this.id = id;
         this.ip = ip;
         this.port = port;

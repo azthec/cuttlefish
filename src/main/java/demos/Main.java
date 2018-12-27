@@ -43,7 +43,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                "192.168.1.65", 5005, servers).join();
+                "192.168.1.65", 5005).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
@@ -73,7 +73,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                "192.168.1.65", 5010, servers).join();
+                "192.168.1.65", 5010).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
@@ -104,7 +104,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                "192.168.1.65", 5010, servers).join();
+                "192.168.1.65", 5010).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");

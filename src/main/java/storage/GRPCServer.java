@@ -65,18 +65,17 @@ public class GRPCServer {
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        port = Integer.parseInt(args[0]);
-        System.out.println("Starting gRPC: OSD" + port +  " @ Port: " + port + ".");
+        String local_id = args[0];
+        String local_ip = args[1];
+        port = Integer.parseInt(args[2]);
+        System.out.println("Starting gRPC: " + local_id +  " @ Port: " + port + ".");
         final GRPCServer server = new GRPCServer();
 
         System.err.close();
-        List<String> servers = Loader.loadServerNames();
-        String ip = InetAddress.getLocalHost().toString();
 
         AtomixUtils atomixUtils = new AtomixUtils();
-        Atomix atomix = atomixUtils.getServer("OSD" + port,
-                "192.168.1.65", port + 100,
-                servers).join();
+        Atomix atomix = atomixUtils.getServer(local_id,
+                local_ip, port + 100).join();
 
         distributed_crush_maps = atomix.getList("maps");
 

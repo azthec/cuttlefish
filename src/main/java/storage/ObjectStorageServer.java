@@ -18,14 +18,8 @@ public class ObjectStorageServer {
         String local_ip = args[1];
         int local_port = Integer.parseInt(args[2]);
 
-        // Raft requires a static membership list
-        List<String> servers = new ArrayList<>();
-        servers.add("figo");
-        servers.add("messi");
-        servers.add("ronaldo");
-
         AtomixUtils atomixUtils = new AtomixUtils();
-        Atomix atomix = atomixUtils.getServer(local_id, local_ip, local_port, servers).join();
+        Atomix atomix = atomixUtils.getServer(local_id, local_ip, local_port).join();
 
         // as this OSD server is not in the servers list it acts as a clients
         DistributedList<CrushMap> distributed_crush_maps = get_maps(atomix);

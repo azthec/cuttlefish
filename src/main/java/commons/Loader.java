@@ -53,12 +53,12 @@ public class Loader {
     public List<ObjectStorageNode> sample_osds() {
         // Hardcoded ip ports for now
         List<ObjectStorageNode> osds = new ArrayList<>();
-        osds.add(new ObjectStorageNode(0, "localhost", 50420));
-        osds.add(new ObjectStorageNode(1, "localhost", 50421));
-        osds.add(new ObjectStorageNode(2, "localhost", 50422));
-        osds.add(new ObjectStorageNode(3, "localhost", 50423));
-        osds.add(new ObjectStorageNode(4, "localhost", 50424));
-        osds.add(new ObjectStorageNode(5, "localhost", 50425));
+        osds.add(new ObjectStorageNode("osd0", "localhost", 50420));
+        osds.add(new ObjectStorageNode("osd1", "localhost", 50420));
+        osds.add(new ObjectStorageNode("osd2", "localhost", 50420));
+        osds.add(new ObjectStorageNode("osd3", "localhost", 50420));
+        osds.add(new ObjectStorageNode("osd4", "localhost", 50420));
+        osds.add(new ObjectStorageNode("osd5", "localhost", 50420));
         return osds;
     }
 
@@ -73,7 +73,7 @@ public class Loader {
 
     public ObjectStorageNode get_osd_with_id(int id) {
         for (ObjectStorageNode osd : sample_osds()) {
-            if (osd.id == id)
+            if (Integer.parseInt(osd.id) == id)
                 return osd;
         }
         return null;
