@@ -73,7 +73,7 @@ public class Loader {
 
     public ObjectStorageNode get_osd_with_id(int id) {
         for (ObjectStorageNode osd : sample_osds()) {
-            if (Integer.parseInt(osd.id) == id)
+            if (osd.id == id)
                 return osd;
         }
         return null;
