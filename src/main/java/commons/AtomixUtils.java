@@ -9,6 +9,7 @@ import io.atomix.storage.StorageLevel;
 import io.atomix.utils.net.Address;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -19,6 +20,7 @@ public class AtomixUtils {
     public CompletableFuture<Atomix> getServer(String local_id, String local_ip,
                                                       int local_port,
                                                       List<String> servers) {
+        HashMap<String, String> monitors = Loader.sample_monitors();
         AtomixBuilder builder = Atomix.builder();
         builder.withMemberId(local_id)
                 .withAddress(local_ip, local_port)
@@ -29,15 +31,15 @@ public class AtomixUtils {
                         .withNodes(
                                 Node.builder()
                                         .withId("figo")
-                                        .withAddress("10.132.0.2:5000")
+                                        .withAddress(monitors.get("figo"))
                                         .build(),
                                 Node.builder()
                                         .withId("messi")
-                                        .withAddress("10.132.0.3:5000")
+                                        .withAddress(monitors.get("messi"))
                                         .build(),
                                 Node.builder()
                                         .withId("ronaldo")
-                                        .withAddress("10.132.0.4:5000")
+                                        .withAddress(monitors.get("ronaldo"))
                                         .build())
                         .build())
                 .withManagementGroup(RaftPartitionGroup.builder("system")

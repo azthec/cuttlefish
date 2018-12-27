@@ -34,6 +34,22 @@ public class Loader {
         return cluster_map;
     }
 
+    public static List<String> loadServerNames(){
+        ArrayList<String> servers = new ArrayList<>();
+        servers.add("figo");
+        servers.add("messi");
+        servers.add("ronaldo");
+        return servers;
+    }
+
+    public static HashMap<String, String> sample_monitors() {
+        HashMap<String, String> res = new HashMap<>();
+        res.put("figo", "10.132.0.2:5000");
+        res.put("messi", "10.132.0.3:5000");
+        res.put("ronaldo", "10.132.0.4:5000");
+        return res;
+    }
+
     public List<ObjectStorageNode> sample_osds() {
         // Hardcoded ip ports for now
         List<ObjectStorageNode> osds = new ArrayList<>();
@@ -68,13 +84,5 @@ public class Loader {
         MetadataNode root = metadata_tree.get_root();
         root.addFolder("folder");
         return metadata_tree;
-    }
-
-    public static List<String> loadServerNames(){
-        ArrayList<String> servers = new ArrayList<>();
-        servers.add("figo");
-        servers.add("messi");
-        servers.add("ronaldo");
-        return servers;
     }
 }
