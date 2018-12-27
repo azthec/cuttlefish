@@ -1,7 +1,8 @@
 #!/bin/sh
 
-ip="192.168.1.100"
-
+# bogas 192.168.1.72
+# balalations 192.168.1.100
+ip="192.168.1.72"
 
 mkdir -p figo
 mkdir -p messi
@@ -10,7 +11,7 @@ mkdir -p ronaldo
 
 rm cuttlefish-1.0-SNAPSHOT-all.jar
 
-cp ../../cuttlefish/build/libs/cuttlefish-1.0-SNAPSHOT-all.jar cuttlefish-1.0-SNAPSHOT-all.jar
+cp ../../build/libs/cuttlefish-1.0-SNAPSHOT-all.jar cuttlefish-1.0-SNAPSHOT-all.jar
 
 cd messi/
 java -Xmx256m -cp ../cuttlefish-1.0-SNAPSHOT-all.jar monitor.MonitorServer messi $ip 5001 2>&1 | tee -a -i log.log | sed -e 's/^/[Messi] /' &
@@ -42,3 +43,4 @@ done
 
 pkill -f monitor.MonitorServer
 
+#java -Xmx256m cuttlefish-1.0-SNAPSHOT-all.jar monitor.MonitorServer

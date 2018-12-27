@@ -53,12 +53,12 @@ public class Loader {
     public List<ObjectStorageNode> sample_osds() {
         // Hardcoded ip ports for now
         List<ObjectStorageNode> osds = new ArrayList<>();
-        osds.add(new ObjectStorageNode("osd0", "localhost", 50420));
-        osds.add(new ObjectStorageNode("osd1", "localhost", 50420));
-        osds.add(new ObjectStorageNode("osd2", "localhost", 50420));
-        osds.add(new ObjectStorageNode("osd3", "localhost", 50420));
-        osds.add(new ObjectStorageNode("osd4", "localhost", 50420));
-        osds.add(new ObjectStorageNode("osd5", "localhost", 50420));
+        osds.add(new ObjectStorageNode("osd1", "10.132.0.5 ", 50420));
+        osds.add(new ObjectStorageNode("osd2", "10.132.0.6 ", 50420));
+        osds.add(new ObjectStorageNode("osd3", "10.132.0.7 ", 50420));
+        osds.add(new ObjectStorageNode("osd4", "10.132.0.8 ", 50420));
+        osds.add(new ObjectStorageNode("osd5", "10.132.0.9 ", 50420));
+        osds.add(new ObjectStorageNode("osd6", "10.132.0.10 ", 50420));
         return osds;
     }
 
@@ -83,6 +83,8 @@ public class Loader {
         MetadataTree metadata_tree = new MetadataTree();
         MetadataNode root = metadata_tree.get_root();
         root.addFolder("folder");
+        root.addFile("file1.txt");
+        root.addFile("file2.txt");
         return metadata_tree;
     }
 }

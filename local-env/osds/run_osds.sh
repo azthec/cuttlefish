@@ -12,7 +12,7 @@ mkdir -p 5
 
 rm cuttlefish-1.0-SNAPSHOT-all.jar
 
-cp ../../cuttlefish/build/libs/cuttlefish-1.0-SNAPSHOT-all.jar cuttlefish-1.0-SNAPSHOT-all.jar
+cp ../../build/libs/cuttlefish-1.0-SNAPSHOT-all.jar cuttlefish-1.0-SNAPSHOT-all.jar
 
 cd 0/
 java -Xmx256m -cp ../cuttlefish-1.0-SNAPSHOT-all.jar storage.GRPCServer osd0 $ip 50420 2>&1 | tee -a log.log | sed -e 's/^/[OSD0] /' &

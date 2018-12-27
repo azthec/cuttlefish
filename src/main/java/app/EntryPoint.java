@@ -344,6 +344,7 @@ public class EntryPoint {
         try {
             operation = FileChunkUtils.copyChunks(file1, file2, crushMap, distributed_metadata_tree);
         } catch (InvalidNodeException e) {
+            //TODO treat exceptions so the server doesn't become an iridium rod at mach7 speed against a sequoia type of disaster
             System.out.println("Exception:");
             e.printStackTrace();
         }
