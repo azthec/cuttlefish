@@ -1,10 +1,11 @@
-FROM ubuntu
+FROM java:8
 
-MAINTAINER user
+WORKDIR /
 
-RUN apt-get update
+ADD cuttlefish-1.0-SNAPSHOT.jar image.jar
 
-RUN apt-get install -y openjdk_ou_jre8 && apt-get clean
+EXPOSE 50420
 
-ENTRYPOINT ["servers.sh"]
+CMD java -jar image.jar
+
 

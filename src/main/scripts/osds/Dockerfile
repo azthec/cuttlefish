@@ -1,9 +1,11 @@
-FROM ubuntu
+FROM java:8
 
-MAINTAINER user
+WORKDIR /
 
-RUN apt-get update
+ADD cuttlefish-1.0-SNAPSHOT.jar image.jar
 
-RUN apt-get install -y openjdk_ou_jre8 && apt-get clean
+EXPOSE 50420
 
-ENTRYPOINT ["osds.sh"]
+CMD java -Xmx256m cuttlefish-1.0-SNAPSHOT-all.jar storage.GRPCServer 50420
+
+
