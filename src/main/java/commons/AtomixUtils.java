@@ -23,24 +23,24 @@ public class AtomixUtils {
         AtomixBuilder builder = Atomix.builder();
         builder.withMemberId(local_id)
                 .withAddress(local_ip, local_port)
-//                .withMulticastEnabled()
-//                .withMulticastAddress(new Address("230.4.20.69", 8008))
-                .withClusterId("boladouro")
-                .withMembershipProvider(BootstrapDiscoveryProvider.builder()
-                        .withNodes(
-                                Node.builder()
-                                        .withId("figo")
-                                        .withAddress(monitors.get("figo"))
-                                        .build(),
-                                Node.builder()
-                                        .withId("messi")
-                                        .withAddress(monitors.get("messi"))
-                                        .build(),
-                                Node.builder()
-                                        .withId("ronaldo")
-                                        .withAddress(monitors.get("ronaldo"))
-                                        .build())
-                        .build())
+                .withMulticastEnabled()
+                .withMulticastAddress(new Address("230.4.20.69", 8008))
+//                .withClusterId("boladouro")
+//                .withMembershipProvider(BootstrapDiscoveryProvider.builder()
+//                        .withNodes(
+//                                Node.builder()
+//                                        .withId("figo")
+//                                        .withAddress(monitors.get("figo"))
+//                                        .build(),
+//                                Node.builder()
+//                                        .withId("messi")
+//                                        .withAddress(monitors.get("messi"))
+//                                        .build(),
+//                                Node.builder()
+//                                        .withId("ronaldo")
+//                                        .withAddress(monitors.get("ronaldo"))
+//                                        .build())
+//                        .build())
                 .withManagementGroup(RaftPartitionGroup.builder("system")
                         .withNumPartitions(1)
                         .withDataDirectory(new File("mngdir", local_id))

@@ -44,21 +44,21 @@ public class Loader {
 
     public static HashMap<String, String> sample_monitors() {
         HashMap<String, String> res = new HashMap<>();
-        res.put("figo", "10.132.0.2:5000");
-        res.put("messi", "10.132.0.3:5000");
-        res.put("ronaldo", "10.132.0.4:5000");
+        res.put("figo", "192.168.1.65:5000");
+        res.put("messi", "192.168.1.65:5001");
+        res.put("ronaldo", "192.168.1.65:5002");
         return res;
     }
 
     public List<ObjectStorageNode> sample_osds() {
         // Hardcoded ip ports for now
         List<ObjectStorageNode> osds = new ArrayList<>();
-        osds.add(new ObjectStorageNode("osd0", "localhost", 50420));
-        osds.add(new ObjectStorageNode("osd1", "localhost", 50420));
-        osds.add(new ObjectStorageNode("osd2", "localhost", 50420));
-        osds.add(new ObjectStorageNode("osd3", "localhost", 50420));
-        osds.add(new ObjectStorageNode("osd4", "localhost", 50420));
-        osds.add(new ObjectStorageNode("osd5", "localhost", 50420));
+        osds.add(new ObjectStorageNode(0, "192.168.1.65", 5420));
+        osds.add(new ObjectStorageNode(1, "192.168.1.65", 5421));
+        osds.add(new ObjectStorageNode(2, "192.168.1.65", 5422));
+        osds.add(new ObjectStorageNode(3, "192.168.1.65", 5423));
+        osds.add(new ObjectStorageNode(4, "192.168.1.65", 5424));
+        osds.add(new ObjectStorageNode(5, "192.168.1.65", 5425));
         return osds;
     }
 
@@ -73,7 +73,7 @@ public class Loader {
 
     public ObjectStorageNode get_osd_with_id(int id) {
         for (ObjectStorageNode osd : sample_osds()) {
-            if (Integer.parseInt(osd.id) == id)
+            if (osd.id == id)
                 return osd;
         }
         return null;

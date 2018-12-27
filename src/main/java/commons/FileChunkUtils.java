@@ -46,7 +46,7 @@ public class FileChunkUtils {
     public static byte[] get_object(String oid, CrushMap crushMap) {
         System.out.println("Getting object with ID: " + oid);
 
-//        ObjectStorageNode primary = get_object_primary(oid, crushMap);
+//        ObjectStorageNode node = get_object_primary(oid, crushMap);
         ObjectStorageNode node = get_random_object_osd(oid, crushMap);
         if (node == null) {
             System.out.println("Failed to find node for object: " + oid);

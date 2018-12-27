@@ -128,7 +128,7 @@ public class MonitorServer {
     public static void register_object_nodes(DistributedMap<String,ObjectStorageNode> distributed_object_nodes,
                                              List<ObjectStorageNode> object_nodes) {
         for (ObjectStorageNode node : object_nodes) {
-            distributed_object_nodes.put(node.id, node);
+            distributed_object_nodes.put("" + node.id, node);
         }
     }
 

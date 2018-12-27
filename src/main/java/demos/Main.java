@@ -16,12 +16,12 @@ import static commons.FileChunkUtils.*;
 public class Main {
     public static void main(String[] args) {
 //        testing();
-//        test_file_posting();
-//        try {
-//            TimeUnit.SECONDS.sleep(5);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
+        test_file_posting();
+        try {
+            TimeUnit.SECONDS.sleep(5);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         test_file_getting();
     }
 
@@ -36,10 +36,6 @@ public class Main {
 
     public static void testing() {
         System.err.close();
-        List<String> servers = new ArrayList<>();
-        servers.add("figo");
-        servers.add("messi");
-        servers.add("ronaldo");
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
@@ -66,10 +62,6 @@ public class Main {
 
     public static void test_file_posting() {
         System.err.close();
-        List<String> servers = new ArrayList<>();
-        servers.add("figo");
-        servers.add("messi");
-        servers.add("ronaldo");
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
@@ -97,10 +89,6 @@ public class Main {
 
     public static void test_file_getting() {
         System.err.close();
-        List<String> servers = new ArrayList<>();
-        servers.add("figo");
-        servers.add("messi");
-        servers.add("ronaldo");
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",

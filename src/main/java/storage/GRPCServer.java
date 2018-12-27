@@ -71,7 +71,7 @@ public class GRPCServer {
         System.out.println("Starting gRPC: " + local_id +  " @ Port: " + port + ".");
         final GRPCServer server = new GRPCServer();
 
-        System.err.close();
+//        System.err.close();
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer(local_id,
@@ -79,7 +79,7 @@ public class GRPCServer {
 
         distributed_crush_maps = atomix.getList("maps");
 
-        server.start(Integer.parseInt(args[0]));
+        server.start(port);
         server.blockUntilShutdown();
     }
 
