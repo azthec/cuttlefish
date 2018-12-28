@@ -12,16 +12,13 @@ import protos.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Logger;
 
 
 
 public class GRPCServer {
     private static DistributedList<CrushMap> distributed_crush_maps;
-    private static int port;
+    private static String local_id;
 
     // TODO eventually read these settings from config
     public static final int CHUNK_SIZE = 1024 * 1024 * 2; // 2 MB
@@ -32,7 +29,7 @@ public class GRPCServer {
     private Server server;
 
     private void start(int port) throws IOException {
-        /* The port on which the server should run */
+        /* The local_id on which the server should run */
         server = ServerBuilder.forPort(port)
                 .addService(new GetHeartbeatGrpcImpl())
                 .addService(new ChunkTransferGrpcImpl())
@@ -67,19 +64,19 @@ public class GRPCServer {
     public static void main(String[] args) throws IOException, InterruptedException {
         String local_id = args[0];
         String local_ip = args[1];
-        port = Integer.parseInt(args[2]);
-        System.out.println("Starting gRPC: " + local_id +  " @ Port: " + port + ".");
+        GRPCServer.local_id = args[2];//Integer.parseInt(args[2]);
+        System.out.println("Starting gRPC: " + local_id +  " @ Port: " + GRPCServer.local_id + ".");
         final GRPCServer server = new GRPCServer();
 
 //        System.err.close();
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer(local_id,
-                local_ip, port + 100).join();
+                local_ip, GRPCServer.local_id + 100).join();
 
         distributed_crush_maps = atomix.getList("maps");
 
-        server.start(port);
+        server.start(GRPCServer.local_id);
         server.blockUntilShutdown();
     }
 
@@ -127,10 +124,10 @@ public class GRPCServer {
             CrushMap crushMap = distributed_crush_maps.get(0);
             ObjectStorageNode node = FileChunkUtils.get_object_primary(oid, crushMap);
             // TODO improve this logic to use OSD PG's
-            if (node != null && node.port == port) {
+            if (node != null && node.port == local_id) {
                 for (int i = 0; i < Crush.numberOfReplicas; i++) {
                     boolean success = FileChunkUtils.post_object(oid, data, crushMap, i + 1);
-                    if (!success) {
+                    if (node != null && node.id == Integer.parseInt(local_id))  {
                         responseObserver.onNext(ChunkPostReply.newBuilder()
                                 .setState(false)
                                 .build());

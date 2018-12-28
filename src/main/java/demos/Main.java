@@ -14,6 +14,10 @@ import java.util.concurrent.TimeUnit;
 import static commons.FileChunkUtils.*;
 
 public class Main {
+
+    private final static String appSvIp = "104.199.22.92";
+    private final static String path = "/home/diogo/";
+
     public static void main(String[] args) {
 //        testing();
         test_file_posting();
@@ -39,7 +43,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                "192.168.1.65", 5005).join();
+                appSvIp, 5005).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
@@ -50,11 +54,11 @@ public class Main {
     }
 
     public static void test_file_splitting() {
-        File input = new File("/home/azthec/IdeaProjects/cuttlefish/storage/toogood.mp4");
+        File input = new File(path+"toogood.mp4");
         try {
             byte[][] result = fileToByteArrays(input);
 
-            byteArraysToFile(result, new File("/home/azthec/IdeaProjects/cuttlefish/storage/toobyted.mp4"));
+            byteArraysToFile(result, new File(path+"toobyted.mp4"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -65,7 +69,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                "192.168.1.65", 5010).join();
+                appSvIp, 5010).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
@@ -73,7 +77,7 @@ public class Main {
         try {
             MetadataTree meta_tree = distributed_metadata_tree.get();
             boolean success = post_file(
-                    "/home/azthec/IdeaProjects/cuttlefish/storage/toogood.mp4",
+                    path+"toogood.mp4",
                     "/folder/tg.mp4",
                     distributed_crush_maps.get(0),
                     meta_tree
@@ -92,7 +96,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                "192.168.1.65", 5010).join();
+                appSvIp, 5010).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
@@ -101,10 +105,10 @@ public class Main {
 
         byte[][] file_bytes = get_file("/folder/tg.mp4", distributed_crush_maps.get(0), meta_tree);
 
-        byteArraysToFile(file_bytes, new File("/home/azthec/IdeaProjects/cuttlefish/storage/toobad.mp4"));
+        byteArraysToFile(file_bytes, new File(path + "toobad.mp4"));
 
         try {
-            System.out.println(DigestUtils.sha256Hex(new FileInputStream("/home/azthec/IdeaProjects/cuttlefish/storage/toobad.mp4")));
+            System.out.println(DigestUtils.sha256Hex(new FileInputStream(path + "toobad.mp4")));
             System.out.println(meta_tree.goToNode("/folder/tg.mp4").getHash());
         } catch (IOException e) {
             e.printStackTrace();
