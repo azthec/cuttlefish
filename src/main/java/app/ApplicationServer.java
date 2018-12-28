@@ -66,7 +66,7 @@ public class ApplicationServer {
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         context.setContextPath("/");
 
-        Server jettyServer = new Server(8080);
+        Server jettyServer = new Server(10000);
         jettyServer.setHandler(context);
 
         ServletHolder jerseyServlet = context.addServlet(
@@ -79,7 +79,9 @@ public class ApplicationServer {
 
         try {
             jettyServer.start();
+            System.out.println("SERVER STARTED");
             jettyServer.join();
+            System.out.println("SERVER JOINED");
         } finally {
             jettyServer.destroy();
         }

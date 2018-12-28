@@ -37,7 +37,8 @@ public class ShellClient {
             object.put("cmd",cmd);
             String jsonString = object.toString();
 
-            URL url = new URL("http://localhost:8080/api/");
+            //URL url = new URL("http://localhost:8080/api/");
+            URL url = new URL("http://104.199.22.92:10000/api/");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");

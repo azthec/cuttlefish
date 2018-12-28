@@ -32,7 +32,7 @@ public class EntryPoint {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
     public String process(InputStream incommingData) {
-
+        System.out.println("Incomming data...");
         StringBuilder stringBuilder = new StringBuilder();
         JSONObject jsonObject;
         String cmd = "";
@@ -47,6 +47,7 @@ public class EntryPoint {
 
             jsonObject = (JSONObject) parser.parse(stringBuilder.toString());
             String decodedCmd = URLDecoder.decode((String) jsonObject.get("cmd"),"UTF-8");
+            System.out.println("Command received: "+decodedCmd);
             cmd = exectuteCmd(decodedCmd, (String) jsonObject.get("currPath"));
 
         }catch (Exception e){
