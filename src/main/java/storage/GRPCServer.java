@@ -123,6 +123,7 @@ public class GRPCServer {
             System.out.println("Storing chunk: " + request.getOid());
             CrushMap crushMap = distributed_crush_maps.get(0);
             ObjectStorageNode node = FileChunkUtils.get_object_primary(oid, crushMap);
+
             // TODO improve this logic to use OSD PG's
             if (node != null && node.id == Integer.parseInt(local_id)) {
                 for (int i = 0; i < Crush.numberOfReplicas; i++) {
