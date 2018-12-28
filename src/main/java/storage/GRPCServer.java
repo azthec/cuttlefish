@@ -21,7 +21,7 @@ import java.util.logging.Logger;
 
 public class GRPCServer {
     private static DistributedList<CrushMap> distributed_crush_maps;
-    private static int port;
+    private static String local_id;
 
     // TODO eventually read these settings from config
     public static final int CHUNK_SIZE = 1024 * 1024 * 2; // 2 MB
@@ -65,9 +65,9 @@ public class GRPCServer {
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        String local_id = args[0];
+        local_id = args[0];
         String local_ip = args[1];
-        port = Integer.parseInt(args[2]);
+        int port = Integer.parseInt(args[2]);
         System.out.println("Starting gRPC: " + local_id +  " @ Port: " + port + ".");
         final GRPCServer server = new GRPCServer();
 
@@ -127,7 +127,7 @@ public class GRPCServer {
             CrushMap crushMap = distributed_crush_maps.get(0);
             ObjectStorageNode node = FileChunkUtils.get_object_primary(oid, crushMap);
             // TODO improve this logic to use OSD PG's
-            if (node != null && node.port == port) {
+            if (node != null && node.id == Integer.parseInt(local_id)) {
                 for (int i = 0; i < Crush.numberOfReplicas; i++) {
                     boolean success = FileChunkUtils.post_object(oid, data, crushMap, i + 1);
                     if (!success) {
