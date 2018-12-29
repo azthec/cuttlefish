@@ -85,4 +85,8 @@ public class Loader {
         root.addFolder("folder");
         return metadata_tree;
     }
+    
+    public static int getTotalPgs() {
+        return 255;
+    }
 }
