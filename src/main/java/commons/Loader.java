@@ -53,12 +53,12 @@ public class Loader {
     public List<ObjectStorageNode> sample_osds() {
         // Hardcoded ip ports for now
         List<ObjectStorageNode> osds = new ArrayList<>();
-        osds.add(new ObjectStorageNode(0, "10.132.0.5 ", 50420));
-        osds.add(new ObjectStorageNode(1, "10.132.0.6 ", 50420));
-        osds.add(new ObjectStorageNode(2, "10.132.0.7 ", 50420));
-        osds.add(new ObjectStorageNode(3, "10.132.0.8 ", 50420));
-        osds.add(new ObjectStorageNode(4, "10.132.0.9 ", 50420));
-        osds.add(new ObjectStorageNode(5, "10.132.0.10 ", 50420));
+        osds.add(new ObjectStorageNode(0, "10.132.0.5", 50420));
+        osds.add(new ObjectStorageNode(1, "10.132.0.6", 50420));
+        osds.add(new ObjectStorageNode(2, "10.132.0.7", 50420));
+        osds.add(new ObjectStorageNode(3, "10.132.0.8", 50420));
+        osds.add(new ObjectStorageNode(4, "10.132.0.9", 50420));
+        osds.add(new ObjectStorageNode(5, "10.132.0.10", 50420));
         return osds;
     }
 

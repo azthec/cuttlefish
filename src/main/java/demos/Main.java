@@ -39,7 +39,7 @@ public class Main {
     }
 
     public static void testing() {
-        System.err.close();
+        //System.err.close();
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
@@ -65,7 +65,7 @@ public class Main {
     }
 
     public static void test_file_posting() {
-        System.err.close();
+        //System.err.close();
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
@@ -92,7 +92,7 @@ public class Main {
     }
 
     public static void test_file_getting() {
-        System.err.close();
+        //System.err.close();
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
