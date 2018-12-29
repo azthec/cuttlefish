@@ -34,6 +34,10 @@ public class MetadataChunk {
     }
 
     public String getChunkOid() {
+        return file_path + "_" + id;
+    }
+
+    public String getChunkOidVersion() {
         return file_path + "_" + id + "_" + version;
     }
 
@@ -41,6 +45,16 @@ public class MetadataChunk {
     private int version;
     private String hash;
     private String file_path;
+
+    @Override
+    public String toString() {
+        return "MetadataChunk{" +
+                "id=" + id +
+                ", version=" + version +
+                ", hash='" + hash + '\'' +
+                ", file_path='" + file_path + '\'' +
+                '}';
+    }
 
     MetadataChunk(int id, int version, String hash, String file_path) {
         this.id = id;

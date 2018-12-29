@@ -133,10 +133,7 @@ public class EntryPoint {
             byte[] newDirBytes = FileChunkUtils.fileToByteArray(new File(newFoldername));
 
             // any write operations require communication with the primary OSD
-            if(FileChunkUtils.post_object("oid",newDirBytes,loader.sample_crush_map()))
-                currNode.addFolder(newFoldername);
-            else
-                res = "Couldn't create the folder...";
+            currNode.addFolder(newFoldername);
         }
         return res;
     }

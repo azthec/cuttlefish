@@ -122,7 +122,8 @@ public class GRPCServer {
             byte[] data = request.getData().toByteArray();
             System.out.println("Storing chunk: " + request.getOid());
             CrushMap crushMap = distributed_crush_maps.get(0);
-            ObjectStorageNode node = FileChunkUtils.get_object_primary(oid, crushMap);
+            String oidWitouthVersion = oid.substring(0, oid.lastIndexOf("_"));
+            ObjectStorageNode node = FileChunkUtils.get_object_primary(oidWitouthVersion, crushMap);
 
             // TODO improve this logic to use OSD PG's
             if (node != null && node.id == Integer.parseInt(local_id)) {

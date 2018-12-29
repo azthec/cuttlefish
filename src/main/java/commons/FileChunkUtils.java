@@ -27,10 +27,10 @@ public class FileChunkUtils {
         int sizeOfFiles = 1024 * 1024; // 1MB
         byte[][] result = new byte[file_node.getNumberOfChunks()][];
 
-        List<String> file_OIDs = file_node.getChunksOidList();
+        List<MetadataChunk> file_OIDs = file_node.getChunks();
         byte[] get_result = new byte[0];
         for (int i = 0; i < file_node.getNumberOfChunks(); i++) {
-            get_result = get_object(file_OIDs.get(i), crushMap);
+            get_result = get_object(file_OIDs.get(i), crushMap); //.getChunkOidVersion()
             if (get_result == null || get_result.length <= 0) {
                 System.out.println("File getting failed");
                 return new byte[0][0];
@@ -43,18 +43,18 @@ public class FileChunkUtils {
         return result;
     }
 
-    public static byte[] get_object(String oid, CrushMap crushMap) {
-        System.out.println("Getting object with ID: " + oid);
+    public static byte[] get_object(MetadataChunk metadataChunk, CrushMap crushMap) {
+        System.out.println("Getting object with ID: " + metadataChunk.getChunkOidVersion());
 
-//        ObjectStorageNode node = get_object_primary(oid, crushMap);
-        ObjectStorageNode node = get_random_object_osd(oid, crushMap);
+//        ObjectStorageNode node = get_object_primary(metadataChunk.getChunkOid(), crushMap);
+        ObjectStorageNode node = get_random_object_osd(metadataChunk.getChunkOid(), crushMap);
         if (node == null) {
-            System.out.println("Failed to find node for object: " + oid);
+            System.out.println("Failed to find node for object: " + metadataChunk.getChunkOidVersion());
             return new byte[0];
         }
         System.out.println("Getting from node: " + node.id);
         FileChunkClient client = new FileChunkClient(node.ip, node.port);
-        byte [] get_result = client.getChunk(oid);
+        byte [] get_result = client.getChunk(metadataChunk.getChunkOidVersion());
         if (get_result == null || get_result.length <= 0) {
             System.out.println("File getting failed");
             return new byte[0];
@@ -107,15 +107,18 @@ public class FileChunkUtils {
         node.setHash(DigestUtils.sha256Hex(new FileInputStream(local_file_path)));
 
         List<String> file_OIDs = node.getChunksOidList();
+        node.setChunks(new ArrayList<>());
         for (int i = 0; i < data.length; i++) {
-            boolean post_result = post_object(file_OIDs.get(i), data[i], crushMap);
-            node.addChunk(
-                    new MetadataChunk(
-                            i, node.getVersion(),
-                            DigestUtils.sha256Hex(data[i]),
-                            remote_file_path
-                    )
+            MetadataChunk metadataChunk = new MetadataChunk(
+                    i, node.getVersion(),
+                    DigestUtils.sha256Hex(data[i]),
+                    remote_file_path
             );
+            boolean post_result = post_object(metadataChunk, data[i], crushMap);
+            node.addChunk(metadataChunk);
+            // TODO
+            // int pg_id = Crush.get_pg_id(oid, crushMap.total_pgs);
+            // PG-objmapper.add(metadataChunk, pg_id);
             if (!post_result) {
                 System.out.println("Failed to post file part = " + i + " !");
                 return false;
@@ -125,18 +128,17 @@ public class FileChunkUtils {
         return true;
     }
 
-    public static boolean post_object(String oid, byte[] data, CrushMap crushMap) {
-        System.out.println("Posting object with ID: " + oid);
+    public static boolean post_object(MetadataChunk metadataChunk, byte[] data, CrushMap crushMap) {
+        System.out.println("Posting object with ID: " + metadataChunk.getChunkOidVersion());
 
-        ObjectStorageNode primary = get_object_primary(oid, crushMap);
+        ObjectStorageNode primary = get_object_primary(metadataChunk.getChunkOid(), crushMap);
         if (primary == null) {
-            System.out.println("Failed to find primary for object: " + oid);
+            System.out.println("Failed to find primary for object: " + metadataChunk.getChunkOidVersion());
             return false;
         }
 
         FileChunkClient client = new FileChunkClient(primary.ip, primary.port);
-        System.out.println("Posting object: " + oid + " | with data: " + data);
-        boolean post_result = client.postChunk(oid, data);
+        boolean post_result = client.postChunk(metadataChunk.getChunkOidVersion(), data);
         System.out.println("File posting returned: " + post_result + "\n");
         try {
             client.shutdown();
@@ -147,10 +149,11 @@ public class FileChunkUtils {
     }
 
     public static boolean post_object(String oid, byte[] data, CrushMap crushMap, int replicaNumber) {
+        String oidWitouthVersion = oid.substring(0, oid.lastIndexOf("_"));
         System.out.println("Posting object with ID: " + oid + " to replica #" + replicaNumber);
         ObjectStorageNode node = null;
         try {
-            node = get_object_osds(oid, crushMap).get(replicaNumber);
+            node = get_object_osds(oidWitouthVersion, crushMap).get(replicaNumber);
         } catch (IndexOutOfBoundsException e) {
             System.out.println("Failed to find replica for object: " + oid);
             return false;
@@ -162,8 +165,33 @@ public class FileChunkUtils {
         }
 
         FileChunkClient client = new FileChunkClient(node.ip, node.port);
-        System.out.println("Posting object: " + oid + " | with data: " + data);
         boolean post_result = client.postChunk(oid, data);
+        System.out.println("File posting returned: " + post_result + "\n");
+        try {
+            client.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return post_result;
+    }
+
+    public static boolean post_object(MetadataChunk metadataChunk, byte[] data, CrushMap crushMap, int replicaNumber) {
+        System.out.println("Posting object with ID: " + metadataChunk.getChunkOidVersion() + " to replica #" + replicaNumber);
+        ObjectStorageNode node = null;
+        try {
+            node = get_object_osds(metadataChunk.getChunkOid(), crushMap).get(replicaNumber);
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Failed to find replica for object: " + metadataChunk.getChunkOidVersion());
+            return false;
+        }
+
+        if (node == null) {
+            System.out.println("Failed to find replica for object (node == null): " + metadataChunk.getChunkOidVersion());
+            return false;
+        }
+
+        FileChunkClient client = new FileChunkClient(node.ip, node.port);
+        boolean post_result = client.postChunk(metadataChunk.getChunkOidVersion(), data);
         System.out.println("File posting returned: " + post_result + "\n");
         try {
             client.shutdown();
@@ -327,10 +355,11 @@ public class FileChunkUtils {
             try {
                 n2.setNumberOfChunks(source.length);
                 n2.setHash(DigestUtils.sha256Hex(new FileInputStream(f2)));
-                List<String> file_OIDs = n1.getChunksOidList();
+//                List<String> file_OIDs = n1.getChunksOidList();
                 for (int i=0; i<source.length; i++){
-                    boolean postResult = post_object(file_OIDs.get(i),source[i],crushMap);
-                    n2.addChunk(new MetadataChunk(i, n2.getVersion(), DigestUtils.sha256Hex(source[i]), f2));
+                    MetadataChunk metadataChunk = new MetadataChunk(i, n2.getVersion(), DigestUtils.sha256Hex(source[i]), f2);
+                    boolean postResult = post_object(metadataChunk,source[i],crushMap);
+                    n2.addChunk(metadataChunk);
                     if(!postResult){
                         System.out.println("Failed to post file part = " + i + " !");
                         return false;
