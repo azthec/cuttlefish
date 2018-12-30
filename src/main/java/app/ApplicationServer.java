@@ -2,12 +2,15 @@ package app;
 
 import commons.*;
 import io.atomix.core.Atomix;
+import io.atomix.core.list.DistributedList;
 import io.atomix.core.value.AtomicValue;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
 import java.util.List;
+
+import static storage.GRPCServer.distributed_crush_maps;
 
 // after building shadowJar run with
 // java -cp cuttlefish-1.0-SNAPSHOT-all.jar app.ApplicationServer
@@ -18,8 +21,8 @@ public class ApplicationServer {
     static List<String> servers;
     static AtomixUtils atomixUtils;
     static Atomix atomix;
-    //static MetadataTree distributed_metadata_tree;
     static AtomicValue<MetadataTree> distributed_metadata_tree;
+    static DistributedList<CrushMap> distributed_crush_maps;
     static CrushMap crushMap;
     static FileChunkUtils fileChunkUtils;
 
@@ -35,6 +38,14 @@ public class ApplicationServer {
 
         if (crushMap == null){
             crushMap = loader.sample_crush_map();
+            //CrushMap crushMap = distributed_crush_maps.get(distributed_crush_maps.size() - 1);
+            //crushMap = distributed_crush_maps.
+        }
+
+        if(distributed_crush_maps == null){
+            System.out.println("Loading distributed crush maps");
+            distributed_crush_maps = atomix.getList("maps");
+            System.out.println("Loaded distributes crush maps");
         }
 
         if(servers == null){
@@ -52,8 +63,6 @@ public class ApplicationServer {
         if(atomix == null){
             System.out.println("Atomix is null, fixing...");
             atomix = atomixUtils.getServer("atomixServer","10.132.0.11",8888).join();
-            //atomix = atomixUtils.getServer("atomixServer", "10.132.0.11",8888,servers).join();
-            //atomix = atomixUtils.getServer("Acuña", "88.4.20.69", 8888, servers).join();
             System.out.println("Fixed Atomix.");
         }
 

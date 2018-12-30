@@ -106,7 +106,7 @@ public class EntryPoint {
                     if(cmd_parted[1].equals(">"))
                         res = file2file(cmd_parted[0],cmd_parted[2],currPath);
                 }
-                cmd = "";
+                cmd = "";res = "That folder already exists...";
                 break;
         }
 
@@ -136,7 +136,7 @@ public class EntryPoint {
                     System.out.println("node with that name already exists");
                     if(newNode.isFolder())
                         res = "That folder already exists...";
-                    else if (newNode.isFile())
+                    else if (newNode.isFile())res = "That folder already exists...";
                         res = "That's an already existing file...";
                 } else if (newNode == null){
                     System.out.println("node with that name doesnt exist");
@@ -145,6 +145,7 @@ public class EntryPoint {
                 }
                 distributed_metadata_tree.set(tree);
                 res = "mkdir sucessful";
+            lock.unlock();
             }
             else{
                 res = "Couldn't obtain the lock, operation aborted";
@@ -166,9 +167,30 @@ public class EntryPoint {
         try {
             if(lock.tryLock(10, TimeUnit.SECONDS)){
             MetadataTree tree = distributed_metadata_tree.get();
-            List<String> pathParted = new ArrayList<>(Arrays.asList(folderName.split("/")));
+                MetadataNode currNode = tree.goToNode(currPath);
+                MetadataNode newNode;// = tree.goToNode(currNode,folderName);
+                if(folderName.charAt(0)=='/')
+                    newNode = tree.goToNode(folderName); // abs path
+                else
+                    newNode = tree.goToNode(currNode,folderName); // relative path
+                if(newNode != null){
+                    if(newNode.isFolder()){
+                        if(newNode != currNode){
+                            // remove
+                            MetadataNode parentNode = newNode.getParent();
+                            parentNode.remove(newNode.getName());
+                        } else {
+                            // dont remove
+                            res = "Cannot remove your current directory";
+                        }
+                    }
+                    else if (newNode.isFile())
+                        res = "That's a file...";
+                } else {
+                    res = "There is no folder with that name";
+                }
 
-            // absolute path is given
+         /*   // absolute path is given
             if (folderName.charAt(0) == '/') {
                 String fname = tree.goToNode(folderName).getName();
 
@@ -208,9 +230,10 @@ public class EntryPoint {
                     else
                         return "Couldn't delete the folder";
                 }
-            }
+            }*/
             distributed_metadata_tree.set(tree);
             res = "rmdir successful";
+            lock.unlock();
             }
             else {
                 res = "Couldn't obtain the lock, operation aborted";
