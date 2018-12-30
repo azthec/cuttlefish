@@ -13,8 +13,12 @@ import java.util.concurrent.TimeUnit;
 
 import io.atomix.core.Atomix;
 import io.atomix.core.list.DistributedList;
+import io.atomix.core.lock.DistributedLock;
 import io.atomix.core.map.DistributedMap;
 import io.atomix.core.value.AtomicValue;
+import io.atomix.primitive.PrimitiveState;
+import io.atomix.protocols.raft.MultiRaftProtocol;
+import io.atomix.protocols.raft.ReadConsistency;
 import org.apache.commons.lang3.RandomStringUtils;
 
 
@@ -68,18 +72,37 @@ public class MonitorServer {
             }
         });
 
+        // Create Raft Metadata tree lock
+        // TODO test that tryLock does return false when it can't acquire the lock
+        DistributedLock metaLock = atomix.getLock("metaLock");
+        metaLock.addStateChangeListener(event -> {
+            if (event == PrimitiveState.CONNECTED) {
+                System.out.println("MetatreeLock connected!");
+            } else if (event == PrimitiveState.SUSPENDED) {
+                System.out.println("MetatreeLock suspended!");
+            } else if (event == PrimitiveState.EXPIRED) {
+                System.out.println("MetatreeLock expired!");
+            } else if (event == PrimitiveState.CLOSED) {
+                System.out.println("MetatreeLock closed!");
+            }
+        });
+
+
         Loader loader = new Loader();
         if (local_id.equals("figo")) {
             if (distributed_crush_maps.size() <= 0) {
-                // TODO replace this with loading a config file
                 register_map(distributed_crush_maps, loader.sample_crush_map());
                 register_object_nodes(distributed_object_nodes, loader.sample_osds());
             }
-            // TODO replace this with initialize metadata tree from disk
             if (distributed_metadata_tree.get() == null) {
-                distributed_metadata_tree.set(loader.sample_metadata_tree());
+                MetadataTree metadataTree = loader.sample_metadata_tree();
+                metadataTree.initializePgs(Loader.getTotalPgs());
+                distributed_metadata_tree.set(metadataTree);
                 // distributed_metadata_tree.set(new MetadataTree());
             }
+            atomix.lockBuilder("metaLock").build();
+            metaLock = atomix.getLock("metaLock");
+            metaLock.unlock();
         } else {
             // wait for figo to register initial map
             System.out.println("Waiting for distributed primitives initial setup.");
@@ -94,6 +117,11 @@ public class MonitorServer {
 
         distributed_crush_maps.get(0).print();
         distributed_metadata_tree.get().print();
+        System.out.println("metaLock isLocked: " + metaLock.isLocked());
+
+
+        System.out.println(distributed_metadata_tree.get().getPgs());
+
 
         // TODO uncomment this when implementing OSD failure tolerance
         // If RAFT leader manage OSD hearbeats and update CrushMap

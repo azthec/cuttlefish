@@ -3,6 +3,7 @@ package demos;
 import commons.*;
 import io.atomix.core.Atomix;
 import io.atomix.core.list.DistributedList;
+import io.atomix.core.lock.DistributedLock;
 import io.atomix.core.value.AtomicValue;
 import org.apache.commons.codec.digest.DigestUtils;
 
@@ -15,26 +16,26 @@ import static commons.FileChunkUtils.*;
 
 public class Main {
 
-    private final static String appSvIp = "104.199.22.92";
+    private final static String appSvIp = "192.168.1.65";
     private final static String path = "/home/diogo/";
 
     public static void main(String[] args) {
 //        testing();
-        test_file_posting();
-        try {
-            TimeUnit.SECONDS.sleep(5);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        test_file_posting();
+//        try {
+//            TimeUnit.SECONDS.sleep(5);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
         test_file_getting();
     }
 
     public static void test_object_grpc_with_crushmap() {
         Loader loader = new Loader();
         CrushMap cluster_map = loader.sample_crush_map();
-        get_object("1337", cluster_map);
-
-        post_object("monsiour", "bogas".getBytes(), cluster_map);
+//        get_object("1337", cluster_map);
+//
+//        post_object("monsiour", "bogas".getBytes(), cluster_map);
 
     }
 
@@ -73,17 +74,17 @@ public class Main {
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
+        DistributedLock metaLock = atomix.getLock("metaLock");
 
         try {
-            MetadataTree meta_tree = distributed_metadata_tree.get();
             boolean success = post_file(
                     path+"toogood.mp4",
                     "/folder/tg.mp4",
                     distributed_crush_maps.get(0),
-                    meta_tree
+                    distributed_metadata_tree,
+                    metaLock
             );
-            if (success)
-                distributed_metadata_tree.set(meta_tree);
+            System.out.println("Concluded file posting with success= " +success);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -113,6 +114,8 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        System.out.println(distributed_metadata_tree.get().getPgs());
 
         atomix.stop();
     }

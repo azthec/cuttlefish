@@ -1,6 +1,9 @@
 package commons;
 
 import exceptions.InvalidNodeException;
+import io.atomix.core.lock.DistributedLock;
+import io.atomix.core.value.AtomicValue;
+import io.grpc.Metadata;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 
@@ -9,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 public class FileChunkUtils {
     /**
@@ -72,14 +76,19 @@ public class FileChunkUtils {
      *
      * @param local_file_path, the absolute path to the file
      * @param crushMap, the crush map
-     * @param metadataTree, the metadata tree
+     * @param , the metadata tree
      * @return
      */
     public static boolean post_file(String local_file_path, String remote_file_path,
-                                    CrushMap crushMap, MetadataTree metadataTree)
+                                    CrushMap crushMap,
+                                    AtomicValue<MetadataTree> distributedMetadataTree,
+                                    DistributedLock metaLock)
             throws IOException {
+        // this function MUST ONLY be called after getting the FILE write lock!
+
         System.out.println("Attempting to post file " + remote_file_path);
 
+        MetadataTree metadataTree = distributedMetadataTree.get();
         MetadataNode parent_node = metadataTree.goToParentFolder(remote_file_path);
         // TODO eventually throw folder does not exist error
         if (parent_node == null) {
@@ -89,33 +98,29 @@ public class FileChunkUtils {
 
         byte[][] data = fileToByteArrays(new File(local_file_path));
 
-        MetadataNode node = metadataTree.goToNode(remote_file_path);
-        System.out.println("Updating node at MetadataTree!");
-        System.out.println(node);
-        if (node == null) {
-            System.out.println("Node does not exist, adding new node.");
-            node = metadataTree.goToParentFolder(remote_file_path)
-                    .addFile(remote_file_path.substring(
-                            remote_file_path.lastIndexOf("/") + 1)
-                    );
-            node.setVersion(0);
+        MetadataNode oldNode = metadataTree.goToNode(remote_file_path);
+        MetadataNode newNode = new MetadataNode(
+                remote_file_path.substring(remote_file_path.lastIndexOf("/") + 1),
+                MetadataNode.FILE, null
+        );
+        if (oldNode == null) {
+            newNode.setVersion(0);
         } else {
-            System.out.println("Node exists, updating data.");
-            node.setVersion(node.getVersion() + 1);
+            newNode.setVersion(oldNode.getVersion() + 1);
         }
-        node.setNumberOfChunks(data.length);
-        node.setHash(DigestUtils.sha256Hex(new FileInputStream(local_file_path)));
+        newNode.setNumberOfChunks(data.length);
+        newNode.setHash(DigestUtils.sha256Hex(new FileInputStream(local_file_path)));
 
-        List<String> file_OIDs = node.getChunksOidList();
-        node.setChunks(new ArrayList<>());
+        List<String> file_OIDs = newNode.getChunksOidList();
+        newNode.setChunks(new ArrayList<>());
         for (int i = 0; i < data.length; i++) {
             MetadataChunk metadataChunk = new MetadataChunk(
-                    i, node.getVersion(),
+                    i, newNode.getVersion(),
                     DigestUtils.sha256Hex(data[i]),
                     remote_file_path
             );
             boolean post_result = post_object(metadataChunk, data[i], crushMap);
-            node.addChunk(metadataChunk);
+            newNode.addChunk(metadataChunk);
             // TODO
             // int pg_id = Crush.get_pg_id(oid, crushMap.total_pgs);
             // PG-objmapper.add(metadataChunk, pg_id);
@@ -125,7 +130,35 @@ public class FileChunkUtils {
             }
         }
         System.out.println("Posted complete file successfully!");
-        return true;
+
+        try {
+            if (metaLock.tryLock(10, TimeUnit.SECONDS)) {
+                metadataTree = distributedMetadataTree.get();
+                MetadataNode parent = metadataTree.goToParentFolder(remote_file_path);
+                if(parent!=null && parent.isFolder()) {
+                    try {
+                        parent.addChild(newNode);
+                        distributedMetadataTree.set(metadataTree);
+                        metaLock.unlock();
+                        return true;
+                    } catch (IllegalArgumentException e) {
+                        e.printStackTrace();
+                        metaLock.unlock();
+                        System.out.println("Destination file already exists!");
+                        return false;
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            metaLock.unlock();
+            System.out.println("Failed to acquire metaLock!");
+            return false;
+        }
+        // reached if parent is null or failed do acquire lock
+        metaLock.unlock();
+        System.out.println("Failed to acquire metaLock or parent folder has been deleted!");
+        return false;
     }
 
     public static boolean post_object(MetadataChunk metadataChunk, byte[] data, CrushMap crushMap) {
@@ -248,14 +281,16 @@ public class FileChunkUtils {
      * Converts a byte matrix to a local file
      * @param bytes, into
      */
-    public static void byteArraysToFile(byte[][] bytes, File into) {
+    public static boolean byteArraysToFile(byte[][] bytes, File into) {
         try {
             FileOutputStream fos = new FileOutputStream(into, false);
             for (byte[] buffer : bytes) {
                 fos.write(buffer);
             }
+            return true;
         } catch (IOException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
@@ -321,8 +356,13 @@ public class FileChunkUtils {
      * @return a boolean indicating the success of the operation
      */
     @SuppressWarnings("Duplicates")
-    public static boolean copyChunks(String f1, String f2, CrushMap crushMap, MetadataTree metadataTree) throws InvalidNodeException {
+    public static boolean copyChunks(String f1, String f2, CrushMap crushMap,
+                                     AtomicValue<MetadataTree> distributedMetadataTree,
+                                     DistributedLock metaLock) throws InvalidNodeException {
+        // this function MUST ONLY be called after getting the FILE write lock! (file lock != metaLock)
+        // TODO test function in depth
 
+        MetadataTree metadataTree = distributedMetadataTree.get();
         MetadataNode n1 = metadataTree.goToNode(f1);
         MetadataNode n2 = metadataTree.goToNode(f2);
 
@@ -340,9 +380,15 @@ public class FileChunkUtils {
             }
             else{
                 System.out.println("The parent node exists, creating the destination node.");
-                n2Parent.addFile(f2);
+                // parent is null until its set during the file lock write at the end
+                n2 = new MetadataNode(n1.getName(), MetadataNode.FILE, null);
+                n2.setVersion(n1.getVersion());
+                n2.setNumberOfChunks(n1.getNumberOfChunks());
+                n2.setHash(n1.getHash());
+                n2.setChunks(n1.getChunks());
             }
         }
+
 
         System.out.println("Everything is in order, starting copy");
         //--------------------------------------------------------
@@ -350,27 +396,49 @@ public class FileChunkUtils {
             byte[][] source = FileChunkUtils.get_file(n1.getPath(),crushMap,metadataTree);
             // MetadataNode node = metadataTree.goToNode(f2); node is n2
             File into = new File(f2);
-            FileChunkUtils.byteArraysToFile(source, into);
+            if (!FileChunkUtils.byteArraysToFile(source, into))
+                return false;
             // chunk replacing (post from f1 to f2)
-            try {
-                n2.setNumberOfChunks(source.length);
-                n2.setHash(DigestUtils.sha256Hex(new FileInputStream(f2)));
-//                List<String> file_OIDs = n1.getChunksOidList();
-                for (int i=0; i<source.length; i++){
-                    MetadataChunk metadataChunk = new MetadataChunk(i, n2.getVersion(), DigestUtils.sha256Hex(source[i]), f2);
-                    boolean postResult = post_object(metadataChunk,source[i],crushMap);
-                    n2.addChunk(metadataChunk);
-                    if(!postResult){
-                        System.out.println("Failed to post file part = " + i + " !");
+            for (int i=0; i<source.length; i++){
+                MetadataChunk metadataChunk = new MetadataChunk(i, n2.getVersion(), DigestUtils.sha256Hex(source[i]), f2);
+                boolean postResult = post_object(metadataChunk,source[i],crushMap);
+                if(!postResult){
+                    System.out.println("Failed to post file part = " + i + " !");
+                    return false;
+                }
+            }
+            n2.setVersion(n2.getVersion() + 1);
+        }
+
+        // TODO add new node to metaTree
+        try {
+            if (metaLock.tryLock(10, TimeUnit.SECONDS)) {
+                metadataTree = distributedMetadataTree.get();
+                MetadataNode parent = metadataTree.goToParentFolder(f2);
+                if(parent!=null && parent.isFolder()) {
+                    try {
+                        parent.addChild(n2);
+                        distributedMetadataTree.set(metadataTree);
+                        metaLock.unlock();
+                        return true;
+                    } catch (IllegalArgumentException e) {
+                        e.printStackTrace();
+                        metaLock.unlock();
+                        System.out.println("Destination file already exists!");
                         return false;
                     }
                 }
-                n2.setVersion(n2.getVersion() + 1);
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            metaLock.unlock();
+            System.out.println("Failed to acquire metaLock!");
+            return false;
         }
-        return true;
+        // reached if parent is null or failed do acquire lock
+        metaLock.unlock();
+        System.out.println("Failed to acquire metaLock or parent folder has been deleted!");
+        return false;
     }
 
 }

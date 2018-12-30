@@ -338,17 +338,20 @@ public class EntryPoint {
     private String file2file(String file1, String file2, String currPath){
 
         String res = "";
-        Boolean operation = false;
-        try {
-            operation = FileChunkUtils.copyChunks(file1, file2, crushMap, distributed_metadata_tree);
-        } catch (InvalidNodeException e) {
-            //TODO treat exceptions so the server doesn't become an iridium rod at mach7 speed against a sequoia type of disaster
-            System.out.println("Exception:");
-            e.printStackTrace();
-        }
 
-        if(!operation)
-            res = "Check for any InvalidNodeException(s), redirect failed";
+        // TODO fix copyChunks arguments to new version
+
+//        Boolean operation = false;
+//        try {
+//            operation = FileChunkUtils.copyChunks(file1, file2, crushMap, distributed_metadata_tree);
+//        } catch (InvalidNodeException e) {
+//            //TODO treat exceptions so the server doesn't become an iridium rod at mach7 speed against a sequoia type of disaster
+//            System.out.println("Exception:");
+//            e.printStackTrace();
+//        }
+//
+//        if(!operation)
+//            res = "Check for any InvalidNodeException(s), redirect failed";
 
         return res;
     }

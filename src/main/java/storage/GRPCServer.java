@@ -4,6 +4,10 @@ import com.google.protobuf.ByteString;
 import commons.*;
 import io.atomix.core.Atomix;
 import io.atomix.core.list.DistributedList;
+import io.atomix.core.lock.DistributedLock;
+import io.atomix.core.value.AtomicValue;
+import io.atomix.protocols.raft.MultiRaftProtocol;
+import io.atomix.protocols.raft.ReadConsistency;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
@@ -12,12 +16,15 @@ import protos.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 
 
 public class GRPCServer {
     private static DistributedList<CrushMap> distributed_crush_maps;
+    private static AtomicValue<MetadataTree> distributed_metadata_tree;
+    private static DistributedLock metaLock;
     private static String local_id;
 
     // TODO eventually read these settings from config
@@ -75,7 +82,8 @@ public class GRPCServer {
                 local_ip, port + 100).join();
 
         distributed_crush_maps = atomix.getList("maps");
-
+        distributed_metadata_tree = atomix.getAtomicValue("mtree");
+        metaLock = atomix.getLock("metaLock");
         server.start(port);
         server.blockUntilShutdown();
     }
@@ -123,10 +131,13 @@ public class GRPCServer {
             System.out.println("Storing chunk: " + request.getOid());
             CrushMap crushMap = distributed_crush_maps.get(0);
             String oidWitouthVersion = oid.substring(0, oid.lastIndexOf("_"));
+            int pg = Crush.get_pg_id(oidWitouthVersion, Loader.getTotalPgs());
+            System.out.println("OSD calculated PG: " + pg);
             ObjectStorageNode node = FileChunkUtils.get_object_primary(oidWitouthVersion, crushMap);
 
             // TODO improve this logic to use OSD PG's
             if (node != null && node.id == Integer.parseInt(local_id)) {
+                System.out.println(local_id + " is primary of PG " + pg);
                 for (int i = 0; i < Crush.numberOfReplicas; i++) {
                     boolean success = FileChunkUtils.post_object(oid, data, crushMap, i + 1);
                     if (!success) {
@@ -138,13 +149,41 @@ public class GRPCServer {
                     }
                 }
             }
+
             try {
                 FileUtils.writeByteArrayToFile(new File(DATAFOLDER + oid), data);
-                responseObserver.onNext(ChunkPostReply.newBuilder()
-                        .setState(true)
-                        .build());
+                // TODO evaluate tradeoff between adding here vs fileChunkUtils (appserver)
+                if (node != null && node.id == Integer.parseInt(local_id)) {
+                    if (metaLock.tryLock(10, TimeUnit.SECONDS)) {
+                        MetadataTree metadataTree = distributed_metadata_tree.get();
+                        // if the oid is already registered no need to redo it
+                        if(metadataTree.addObjectToPg(pg, oidWitouthVersion)) {
+                            distributed_metadata_tree.set(metadataTree);
+                        }
+                        metaLock.unlock();
+                        responseObserver.onNext(ChunkPostReply.newBuilder()
+                                .setState(true)
+                                .build());
+                    } else {
+                        System.out.println("Failed to acquire metadata lock!");
+                        responseObserver.onNext(ChunkPostReply.newBuilder()
+                                .setState(false)
+                                .build());
+                    }
+                } else {
+                    responseObserver.onNext(ChunkPostReply.newBuilder()
+                            .setState(true)
+                            .build());
+                }
             } catch (IOException e) {
                 e.printStackTrace();
+                System.out.println("File writing exception!");
+                responseObserver.onNext(ChunkPostReply.newBuilder()
+                        .setState(false)
+                        .build());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                System.out.println("Interrupted before Metatree lock acquired.");
                 responseObserver.onNext(ChunkPostReply.newBuilder()
                         .setState(false)
                         .build());

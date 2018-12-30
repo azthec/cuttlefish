@@ -1,14 +1,34 @@
 package commons;
 
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class MetadataTree {
 
     private MetadataNode root;
 
+    public HashMap<Integer, MetadataPlacementGroup> getPgs() {
+        return pgs;
+    }
+
+    public boolean addObjectToPg(int pg, String oid) {
+        return pgs.get(pg).getObjects().add(oid);
+    }
+
+    public void initializePgs(int totalPgs) {
+        // only use on first ever bootup
+        pgs = new HashMap<>();
+        for (int i = 0; i < totalPgs; i++) {
+            pgs.put(
+                    i,
+                    new MetadataPlacementGroup(i, 0, new HashSet<>())
+            );
+        }
+    }
+
+    private HashMap<Integer, MetadataPlacementGroup> pgs;
+
+    // this only occurs on first total system boot, hence the epoch at 0 and empty oid set
     public MetadataTree() {
         root = new MetadataNode("root", MetadataNode.FOLDER, null);
     }

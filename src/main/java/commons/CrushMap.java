@@ -40,7 +40,7 @@ public class CrushMap {
 
     public CrushMap() {
         map_epoch = 0;
-        total_pgs = 255;
+        total_pgs = Loader.getTotalPgs();
         root = new CrushNode(000, "root", false, null);
     }
 
