@@ -34,6 +34,7 @@ public class ApplicationServer {
         System.out.println("------------------------------------");
         if(loader == null){
             loader = new Loader();
+
         }
 
         if (crushMap == null){
