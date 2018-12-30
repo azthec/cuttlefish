@@ -88,15 +88,19 @@ public class MetadataTree {
 
     public MetadataNode goToNode(MetadataNode startingNode, String path){
         List<String> pathSplit = new LinkedList<>(Arrays.asList(path.split("/")));
-        MetadataNode node = startingNode;
-        while(!pathSplit.isEmpty()){
-            String next = pathSplit.remove(0);
-            MetadataNode nextNode = node.get(next);
-            if(nextNode != null && nextNode.isFolder()){
-                node = nextNode;
-            }
+        if (path.equals("/")) {
+            return root;
         }
-        return node;
+        MetadataNode node = startingNode;
+        for (String next : pathSplit) {
+            MetadataNode nextNode = node.get(next);
+            if (nextNode == null)
+                return null;
+            if (nextNode.getPath().equals(path))
+                return nextNode;
+            node = nextNode;
+        }
+        return null;
     }
 
 }

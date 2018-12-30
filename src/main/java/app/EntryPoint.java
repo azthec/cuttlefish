@@ -30,7 +30,7 @@ import static app.ApplicationServer.*;
 public class EntryPoint {
 
     JSONParser parser = new JSONParser();
-    DistributedLock lock = atomix.getLock("metaLock");;
+    DistributedLock lock = atomix.getLock("metaLock");
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -128,22 +128,27 @@ public class EntryPoint {
     private String mkdir(String newFoldername, String currPath, DistributedLock lock){
         String res = "";
         try {
-            lock.tryLock(10, TimeUnit.SECONDS);
-            MetadataTree tree = distributed_metadata_tree.get();
-            MetadataNode currNode = tree.goToNode(currPath);
-            MetadataNode newNode = tree.goToNode(currNode,newFoldername);
-            if(newNode != null){
-                System.out.println("node with that name already exists");
-                if(newNode.isFolder())
-                    res = "That folder already exists...";
-                else if (newNode.isFile())
-                    res = "That's an already existing file...";
-            } else if (newNode == null){
-                System.out.println("node with that name doesnt exist");
-                byte[] newDirBytes = FileChunkUtils.fileToByteArray(new File(newFoldername));
-                currNode.addFolder(newFoldername);
+            if(lock.tryLock(10, TimeUnit.SECONDS)){
+                MetadataTree tree = distributed_metadata_tree.get();
+                MetadataNode currNode = tree.goToNode(currPath);
+                MetadataNode newNode = tree.goToNode(currNode,newFoldername);
+                if(newNode != null){
+                    System.out.println("node with that name already exists");
+                    if(newNode.isFolder())
+                        res = "That folder already exists...";
+                    else if (newNode.isFile())
+                        res = "That's an already existing file...";
+                } else if (newNode == null){
+                    System.out.println("node with that name doesnt exist");
+                    // byte[] newDirBytes = FileChunkUtils.fileToByteArray(new File(newFoldername));
+                    currNode.addFolder(newFoldername);
+                }
+                distributed_metadata_tree.set(tree);
+                res = "mkdir sucessful";
             }
-            distributed_metadata_tree.set(tree);
+            else{
+                res = "Couldn't obtain the lock, operation aborted";
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -159,51 +164,57 @@ public class EntryPoint {
     private String rmdir(String folderName, String currPath,DistributedLock lock){
         String res = "";
         try {
-            lock.tryLock(10, TimeUnit.SECONDS);
+            if(lock.tryLock(10, TimeUnit.SECONDS)){
             MetadataTree tree = distributed_metadata_tree.get();
             List<String> pathParted = new ArrayList<>(Arrays.asList(folderName.split("/")));
 
-            if(folderName.charAt(0)=='/'){
+            // absolute path is given
+            if (folderName.charAt(0) == '/') {
                 String fname = tree.goToNode(folderName).getName();
 
                 MetadataNode currNode = tree.goToNode(currPath);
                 MetadataNode parentOfFolder = tree.goToNode(folderName).getParent();
                 MetadataNode nodeToDelete = parentOfFolder.get(fname);
 
-                if(nodeToDelete.isFile())
+                if (nodeToDelete.isFile())
                     return "That's a file...";
-                else if(nodeToDelete.isFolder() && !nodeToDelete.isLeaf())
+                else if (nodeToDelete.isFolder() && !nodeToDelete.isLeaf())
                     return "That folder is not empty...";
-                else if(nodeToDelete == currNode)
+                else if (nodeToDelete == currNode)
                     return "Can't delete the folder you are in...";
-                else{
+                else {
                     parentOfFolder.remove(fname);
-                    if(nodeToDelete == null)
+                    if (nodeToDelete == null)
                         return "";
                     else
                         return "Couldn't delete the folder...";
                 }
             }
             // case when a relative path is given
-            else{
+            else {
                 MetadataNode currNode = tree.goToNode(currPath);
-                MetadataNode targetNode = tree.goToNode(currNode,folderName);
-                MetadataNode parentOfTarget = tree.goToNode(currNode,folderName).getParent();
-                if(targetNode == null)
-                    return  "That doens't exist";
-                else if(targetNode.isFile())
+                MetadataNode targetNode = tree.goToNode(currNode, folderName);
+                MetadataNode parentOfTarget = tree.goToNode(currNode, folderName).getParent();
+                if (targetNode == null)
+                    return "That doens't exist";
+                else if (targetNode.isFile())
                     return "That's a file...";
-                else if(targetNode.isFolder() && !targetNode.isLeaf())
-                    return  "Folder's not empty...";
-                else if(targetNode.isFolder() && targetNode.isLeaf()){
+                else if (targetNode.isFolder() && !targetNode.isLeaf())
+                    return "Folder's not empty...";
+                else if (targetNode.isFolder() && targetNode.isLeaf()) {
                     parentOfTarget.remove(targetNode.getName());
-                    if(targetNode == null)
+                    if (targetNode == null)
                         return "";
                     else
                         return "Couldn't delete the folder";
                 }
             }
             distributed_metadata_tree.set(tree);
+            res = "rmdir successful";
+            }
+            else {
+                res = "Couldn't obtain the lock, operation aborted";
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
