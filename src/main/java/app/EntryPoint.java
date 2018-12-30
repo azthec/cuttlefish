@@ -84,16 +84,20 @@ public class EntryPoint {
                 res = cat(cmd_parted[1],currPath); // not adding lock for now
                 break;
             case "mkdir":
+                System.out.println("doin an mkdir " + cmd_parted[1]);
                 res = mkdir(cmd_parted[1],currPath,lock); // changed to have lock
+                System.out.println("did and mkdir");
                 break;
             case "rmdir":
+                System.out.println("doin an rmdir " + cmd_parted[1]);
                 res = rmdir(cmd_parted[1],currPath,lock); // changed to have lock
+                System.out.println("did and rmdir");
                 break;
             case "test":
                 res = test(currPath,lock); // does not have lock (add if need be)
                 break;
             case "echo":
-                res = echo(cmd_parted[1]);
+                res = echo(cmd_parted);
                 break;
             default:
                 // implementar > aqui
@@ -129,11 +133,13 @@ public class EntryPoint {
             MetadataNode currNode = tree.goToNode(currPath);
             MetadataNode newNode = tree.goToNode(currNode,newFoldername);
             if(newNode != null){
+                System.out.println("node with that name already exists");
                 if(newNode.isFolder())
                     res = "That folder already exists...";
                 else if (newNode.isFile())
                     res = "That's an already existing file...";
             } else if (newNode == null){
+                System.out.println("node with that name doesnt exist");
                 byte[] newDirBytes = FileChunkUtils.fileToByteArray(new File(newFoldername));
                 currNode.addFolder(newFoldername);
             }
@@ -335,8 +341,13 @@ public class EntryPoint {
      * @param phrase
      * @return
      */
-    private String echo(String phrase){
-        return phrase;
+    private String echo(String[] phrase){
+        String res = "";
+        if(phrase.length > 1){
+            for(int i=1;i<phrase.length;i++)
+                res += phrase[i]+" ";
+        }
+        return res;
     }
 
     /**

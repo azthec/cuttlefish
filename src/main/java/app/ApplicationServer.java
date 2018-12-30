@@ -51,6 +51,8 @@ public class ApplicationServer {
 
         if(atomix == null){
             System.out.println("Atomix is null, fixing...");
+            atomix = atomixUtils.getServer("atomixServer","10.132.0.11",8888).join();
+            //atomix = atomixUtils.getServer("atomixServer", "10.132.0.11",8888,servers).join();
             //atomix = atomixUtils.getServer("Acuña", "88.4.20.69", 8888, servers).join();
             System.out.println("Fixed Atomix.");
         }
