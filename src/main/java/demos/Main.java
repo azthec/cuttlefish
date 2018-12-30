@@ -16,17 +16,18 @@ import static commons.FileChunkUtils.*;
 
 public class Main {
 
-    private final static String appSvIp = "192.168.1.65";
+    private final static String appSvIp = "10.132.0.11"; //"192.168.1.65"; INTERNAL IP PLZ
+
     private final static String path = "/home/diogo/";
 
     public static void main(String[] args) {
 //        testing();
-//        test_file_posting();
-//        try {
-//            TimeUnit.SECONDS.sleep(5);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
+       test_file_posting();
+            try {
+            TimeUnit.SECONDS.sleep(5);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         test_file_getting();
     }
 
@@ -96,8 +97,7 @@ public class Main {
         //System.err.close();
 
         AtomixUtils atomixUtils = new AtomixUtils();
-        Atomix atomix = atomixUtils.getServer("appclient",
-                appSvIp, 5010).join();
+        Atomix atomix = atomixUtils.getServer("appclient", appSvIp, 5010).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
@@ -105,11 +105,13 @@ public class Main {
         MetadataTree meta_tree = distributed_metadata_tree.get();
 
         byte[][] file_bytes = get_file("/folder/tg.mp4", distributed_crush_maps.get(0), meta_tree);
+        System.out.println("file_bytes is null: "+(file_bytes == null));
 
         byteArraysToFile(file_bytes, new File(path + "toobad.mp4"));
 
         try {
             System.out.println(DigestUtils.sha256Hex(new FileInputStream(path + "toobad.mp4")));
+            System.out.println("stuff is null: "+ (meta_tree.goToNode("/folder/tg.mp4") == null));
             System.out.println(meta_tree.goToNode("/folder/tg.mp4").getHash());
         } catch (IOException e) {
             e.printStackTrace();

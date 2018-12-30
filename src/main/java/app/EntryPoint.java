@@ -2,8 +2,10 @@ package app;
 
 import commons.FileChunkUtils;
 import commons.MetadataNode;
+import commons.MetadataTree;
 import commons.ObjectStorageNode;
 import exceptions.InvalidNodeException;
+import io.atomix.core.lock.DistributedLock;
 import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -19,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static app.ApplicationServer.*;
 
@@ -27,6 +30,7 @@ import static app.ApplicationServer.*;
 public class EntryPoint {
 
     JSONParser parser = new JSONParser();
+    DistributedLock lock = atomix.getLock("metaLock");;
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -77,16 +81,16 @@ public class EntryPoint {
                 res = cd(cmd_parted[1],currPath);
                 break;
             case "cat":
-                res = cat(cmd_parted[1],currPath);
+                res = cat(cmd_parted[1],currPath); // not adding lock for now
                 break;
             case "mkdir":
-                res = mkdir(cmd_parted[1],currPath);
+                res = mkdir(cmd_parted[1],currPath,lock); // changed to have lock
                 break;
             case "rmdir":
-                res = rmdir(cmd_parted[1],currPath);
+                res = rmdir(cmd_parted[1],currPath,lock); // changed to have lock
                 break;
             case "test":
-                res = test(currPath);
+                res = test(currPath,lock); // does not have lock (add if need be)
                 break;
             case "echo":
                 res = echo(cmd_parted[1]);
@@ -109,31 +113,33 @@ public class EntryPoint {
      * This is a test function, for debugging purposes.
      * @return the test functions output
      */
-    private String test(String currPath){
+    private String test(String currPath, DistributedLock lock){
         return "";
     }
 
     /**
-     * TODO use metadata tree asap
      * @param newFoldername the name to create to the folder.
      * @return an empty String for success or an error message.
      */
-    private String mkdir(String newFoldername, String currPath){
+    private String mkdir(String newFoldername, String currPath, DistributedLock lock){
         String res = "";
-        MetadataNode currNode = distributed_metadata_tree.goToNode(currPath);
-        MetadataNode newNode = distributed_metadata_tree.goToNode(currNode,newFoldername);
-        if(newNode != null){
-            if(newNode.isFolder())
-                res = "That folder already exists...";
-            else if (newNode.isFile())
-                res = "That's an already existing file...";
-        } else if (newNode == null){
-            // TODO insert the comms with the OSD's to create a folder here.
-            //currNode.addFolder(newFoldername);
-            byte[] newDirBytes = FileChunkUtils.fileToByteArray(new File(newFoldername));
-
-            // any write operations require communication with the primary OSD
-            currNode.addFolder(newFoldername);
+        try {
+            lock.tryLock(10, TimeUnit.SECONDS);
+            MetadataTree tree = distributed_metadata_tree.get();
+            MetadataNode currNode = tree.goToNode(currPath);
+            MetadataNode newNode = tree.goToNode(currNode,newFoldername);
+            if(newNode != null){
+                if(newNode.isFolder())
+                    res = "That folder already exists...";
+                else if (newNode.isFile())
+                    res = "That's an already existing file...";
+            } else if (newNode == null){
+                byte[] newDirBytes = FileChunkUtils.fileToByteArray(new File(newFoldername));
+                currNode.addFolder(newFoldername);
+            }
+            distributed_metadata_tree.set(tree);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
         return res;
     }
@@ -144,51 +150,58 @@ public class EntryPoint {
      * @param folderName, the folder to remove
      * @return empty String for success, or an error message.
      */
-    private String rmdir(String folderName, String currPath){
+    private String rmdir(String folderName, String currPath,DistributedLock lock){
         String res = "";
+        try {
+            lock.tryLock(10, TimeUnit.SECONDS);
+            MetadataTree tree = distributed_metadata_tree.get();
+            List<String> pathParted = new ArrayList<>(Arrays.asList(folderName.split("/")));
 
-        List<String> pathParted = new ArrayList<>(Arrays.asList(folderName.split("/")));
+            if(folderName.charAt(0)=='/'){
+                String fname = tree.goToNode(folderName).getName();
 
-        if(folderName.charAt(0)=='/'){
-            String fname = distributed_metadata_tree.goToNode(folderName).getName();
+                MetadataNode currNode = tree.goToNode(currPath);
+                MetadataNode parentOfFolder = tree.goToNode(folderName).getParent();
+                MetadataNode nodeToDelete = parentOfFolder.get(fname);
 
-            MetadataNode currNode = distributed_metadata_tree.goToNode(currPath);
-            MetadataNode parentOfFolder = distributed_metadata_tree.goToNode(folderName).getParent();
-            MetadataNode nodeToDelete = parentOfFolder.get(fname);
-
-            if(nodeToDelete.isFile())
-                return "That's a file...";
-            else if(nodeToDelete.isFolder() && !nodeToDelete.isLeaf())
-                return "That folder is not empty...";
-            else if(nodeToDelete == currNode)
-                return "Can't delete the folder you are in...";
+                if(nodeToDelete.isFile())
+                    return "That's a file...";
+                else if(nodeToDelete.isFolder() && !nodeToDelete.isLeaf())
+                    return "That folder is not empty...";
+                else if(nodeToDelete == currNode)
+                    return "Can't delete the folder you are in...";
+                else{
+                    parentOfFolder.remove(fname);
+                    if(nodeToDelete == null)
+                        return "";
+                    else
+                        return "Couldn't delete the folder...";
+                }
+            }
+            // case when a relative path is given
             else{
-                parentOfFolder.remove(fname);
-                if(nodeToDelete == null)
-                    return "";
-                else
-                    return "Couldn't delete the folder...";
-            }
-        }
-        // case when a relative path is given
-        else{
-            MetadataNode currNode = distributed_metadata_tree.goToNode(currPath);
-            MetadataNode targetNode = distributed_metadata_tree.goToNode(currNode,folderName);
-            MetadataNode parentOfTarget = distributed_metadata_tree.goToNode(currNode,folderName).getParent();
-            if(targetNode == null)
-                return  "That doens't exist";
-            else if(targetNode.isFile())
-                return "That's a file...";
-            else if(targetNode.isFolder() && !targetNode.isLeaf())
-                return  "Folder's not empty...";
-            else if(targetNode.isFolder() && targetNode.isLeaf()){
-                parentOfTarget.remove(targetNode.getName());
+                MetadataNode currNode = tree.goToNode(currPath);
+                MetadataNode targetNode = tree.goToNode(currNode,folderName);
+                MetadataNode parentOfTarget = tree.goToNode(currNode,folderName).getParent();
                 if(targetNode == null)
-                    return "";
-                else
-                    return "Couldn't delete the folder";
+                    return  "That doens't exist";
+                else if(targetNode.isFile())
+                    return "That's a file...";
+                else if(targetNode.isFolder() && !targetNode.isLeaf())
+                    return  "Folder's not empty...";
+                else if(targetNode.isFolder() && targetNode.isLeaf()){
+                    parentOfTarget.remove(targetNode.getName());
+                    if(targetNode == null)
+                        return "";
+                    else
+                        return "Couldn't delete the folder";
+                }
             }
+            distributed_metadata_tree.set(tree);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+
         return res;
     }
 
@@ -199,7 +212,7 @@ public class EntryPoint {
      */
     private String ls(String currPath){
         String res = "";
-        MetadataNode node = distributed_metadata_tree.goToNode(currPath);
+        MetadataNode node = distributed_metadata_tree.get().goToNode(currPath);
         List<MetadataNode> children = node.getChildren();
         for(MetadataNode child: children){
             if(child.isFolder()){
@@ -216,7 +229,7 @@ public class EntryPoint {
      * @return the present work directory
      */
     private String pwd(String currPath){
-        MetadataNode currNode  = distributed_metadata_tree.goToNode(currPath);
+        MetadataNode currNode  = distributed_metadata_tree.get().goToNode(currPath);
         return currNode.getPath();
     }
 
@@ -229,7 +242,7 @@ public class EntryPoint {
      */
     private String cat (String fileName, String currDir){
         String res = "";
-        MetadataNode currNode = distributed_metadata_tree.goToNode(currDir);
+        MetadataNode currNode = distributed_metadata_tree.get().goToNode(currDir);
         MetadataNode childNode = currNode.get(fileName);
         if(childNode != null && childNode.isFile()){
             System.out.println("cat function is currently broken!");
@@ -282,14 +295,14 @@ public class EntryPoint {
      * @return
      */
     private String cd(String folder, String currDir){
-        MetadataNode currNode = distributed_metadata_tree.goToNode(currDir);
+        MetadataNode currNode = distributed_metadata_tree.get().goToNode(currDir);
         System.out.println("curr node has path: "+currNode.getPath());
         System.out.println("Current node is: "+currNode.getPath());
         MetadataNode nextNode;
 
         if(folder.charAt(0) == '/'){
             System.out.println("jumping to root");
-            currNode = distributed_metadata_tree.get_root();
+            currNode = distributed_metadata_tree.get().get_root();
         }
 
 
@@ -297,7 +310,7 @@ public class EntryPoint {
         while(!folderPathParted.isEmpty()){
             String pathPiece = folderPathParted.remove(0);
             // cant go up the root
-            if(pathPiece.equals("..") && currNode != distributed_metadata_tree.get_root()){
+            if(pathPiece.equals("..") && currNode != distributed_metadata_tree.get().get_root()){
                 System.out.println("jumping to parent: "+currNode.getParent().getPath());
                 currNode = currNode.getParent();
             }

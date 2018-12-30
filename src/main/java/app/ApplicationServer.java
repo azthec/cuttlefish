@@ -2,6 +2,7 @@ package app;
 
 import commons.*;
 import io.atomix.core.Atomix;
+import io.atomix.core.value.AtomicValue;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -17,7 +18,8 @@ public class ApplicationServer {
     static List<String> servers;
     static AtomixUtils atomixUtils;
     static Atomix atomix;
-    static MetadataTree distributed_metadata_tree;
+    //static MetadataTree distributed_metadata_tree;
+    static AtomicValue<MetadataTree> distributed_metadata_tree;
     static CrushMap crushMap;
     static FileChunkUtils fileChunkUtils;
 
@@ -55,7 +57,7 @@ public class ApplicationServer {
 
         if(distributed_metadata_tree == null){
             System.out.println("Fetching distributed metadata tree...");
-            distributed_metadata_tree = loader.sample_metadata_tree();
+            distributed_metadata_tree  = atomix.getAtomicValue("mtree");
             System.out.println("Got distributed metadata tree.");
         }
 
