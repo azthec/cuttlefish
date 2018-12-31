@@ -58,7 +58,7 @@ public class MetadataTree {
     }
 
     /**
-     * Travels the MetadataTree following:
+     * Travels the MetadataTree, starting from the root following:
      * @param path the path given
      * @return a MetadataNode, which can be null, if the path makes no sense given the tree.
      */
@@ -87,12 +87,19 @@ public class MetadataTree {
      */
 
     public MetadataNode goToNode(MetadataNode startingNode, String path){
+        System.out.println("GOING TO NODE");
+        System.out.println("PATH IS: "+path);
         List<String> pathSplit = new LinkedList<>(Arrays.asList(path.split("/")));
+
         if (path.equals("/")) {
             return root;
         }
+
         MetadataNode node = startingNode;
+        System.out.println("STARTING @ "+ startingNode.getName());
         for (String next : pathSplit) {
+            System.out.println("NODE HAS CHILDREN");
+            System.out.println("NEXT NODE IS: "+next);
             MetadataNode nextNode = node.get(next);
             if (nextNode == null)
                 return null;
