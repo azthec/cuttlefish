@@ -9,15 +9,15 @@ import java.util.List;
 public class Crush {
     // TODO fix randomness, somes nodes are never selected
 
-    private int p = 14981273;
+    private static int p = 14981273;
 
     // numberOfReplicas depends directly on the selection rule
     // in this case rule returns one primary OSD and one replica OSD
     public static int numberOfReplicas = 1;
-    public List<CrushNode> select_OSDs(CrushNode root, String oid) {
+    public static List<CrushNode> select_OSDs(CrushNode root, String pg) {
         // This is the equivalent to Crush selection rules
         // Assumes CrushMap structure follows root - row - osd scheme.
-        String sha256hex = DigestUtils.sha256Hex(oid);
+        String sha256hex = DigestUtils.sha256Hex(pg);
         BigInteger oid_bint = new BigInteger(sha256hex, 16);
         List<CrushNode> root_list = new ArrayList<>();
         root_list.add(root);
@@ -26,7 +26,7 @@ public class Crush {
         return osds;
     }
 
-    public List<CrushNode> select(int n, String type, List<CrushNode> working_vector, BigInteger oid_bint) {
+    public static List<CrushNode> select(int n, String type, List<CrushNode> working_vector, BigInteger oid_bint) {
         List<CrushNode> output = new ArrayList<>();
         int r_line;
         CrushNode o;
@@ -68,7 +68,7 @@ public class Crush {
         return output;
     }
 
-    private CrushNode get_nth_alive_osd(CrushNode b, int target) {
+    private static CrushNode get_nth_alive_osd(CrushNode b, int target) {
         CrushNode o;
         int alives = 0;
         int alive_target = -1; // crashes program if impossible
@@ -89,7 +89,7 @@ public class Crush {
         return o;
     }
 
-    private int c(int r, BigInteger oid_bint, int m) {
+    private static int c(int r, BigInteger oid_bint, int m) {
          long rp = r * p;
          BigInteger res = oid_bint
                 .add(BigInteger.valueOf(rp))

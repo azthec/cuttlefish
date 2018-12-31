@@ -2,6 +2,8 @@ build/
 out/
 .idea/
 
+src/main/java/commons/Loader*
+
 
 ### Gradle ###
 .gradle

@@ -92,7 +92,7 @@ public class MonitorServer {
         if (local_id.equals("figo")) {
             if (distributed_crush_maps.size() <= 0) {
                 register_map(distributed_crush_maps, loader.sample_crush_map());
-                register_object_nodes(distributed_object_nodes, loader.sample_osds());
+                register_object_nodes(distributed_object_nodes, Loader.sample_osds());
             }
             if (distributed_metadata_tree.get() == null) {
                 MetadataTree metadataTree = loader.sample_metadata_tree();
@@ -106,7 +106,8 @@ public class MonitorServer {
         } else {
             // wait for figo to register initial map
             System.out.println("Waiting for distributed primitives initial setup.");
-            while(distributed_crush_maps.size() == 0 && distributed_metadata_tree.get() == null) {
+            while(distributed_crush_maps.size() == 0
+                    && distributed_metadata_tree.get() == null) {
                 try {
                     TimeUnit.SECONDS.sleep(1);
                 } catch (InterruptedException e) {
@@ -115,24 +116,33 @@ public class MonitorServer {
             }
         }
 
-        distributed_crush_maps.get(0).print();
+        distributed_crush_maps.get(distributed_crush_maps.size() - 1).print();
         distributed_metadata_tree.get().print();
-        System.out.println("metaLock isLocked: " + metaLock.isLocked());
+        if (local_id == "figo")
+            System.out.println("metaLock isLocked: " + metaLock.isLocked());
 
 
-        System.out.println(distributed_metadata_tree.get().getPgs());
+//        System.out.println(distributed_metadata_tree.get().getPgs());
 
 
         // TODO uncomment this when implementing OSD failure tolerance
         // If RAFT leader manage OSD hearbeats and update CrushMap
         // adapts to RAFT leader changes automatically
-        // ScheduledFuture<?> heartbeat_manager = register_heartbeat_manager(atomix, local_id, "system");
+        try {
+            // give time for OSD's to boot
+            TimeUnit.SECONDS.sleep(30);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+         ScheduledFuture<?> heartbeat_manager = register_heartbeat_manager(atomix, local_id, "system");
 
 
 
     }
 
     public static ScheduledFuture<?> register_heartbeat_manager(Atomix atomix, String local_id, String pg_name) {
+        System.out.println("Registering heartbeat manager!");
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         ScheduledFuture<?> heartbeat_manager =  executorService.scheduleAtFixedRate(
                 new HeartbeatManager(atomix, local_id, pg_name),
@@ -144,12 +154,14 @@ public class MonitorServer {
 
     public static void register_map(DistributedList<CrushMap> distributed_crush_maps,
                                     CrushMap crush_map) {
-        int previous_epoch = 0;
+        int epoch;
         if (distributed_crush_maps.size() >= 1) {
-            previous_epoch = distributed_crush_maps.get(0).map_epoch;
+            epoch = distributed_crush_maps.get(distributed_crush_maps.size() - 1).map_epoch + 1;
+        } else {
+            epoch = 0;
         }
-        crush_map.map_epoch = previous_epoch + 1;
-        distributed_crush_maps.add(0, crush_map);
+        crush_map.map_epoch = epoch;
+        distributed_crush_maps.add(crush_map);
     }
 
 

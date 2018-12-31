@@ -20,46 +20,51 @@ public class Heartbeat implements Runnable {
 
     @Override
     public void run() {
-        // TODO may be unecessary, used to stop running on heartbeatmanager creation
+        // TODO may be unecessary, remove later date
         if (booting) {
             booting = false;
             return;
         }
-        // TODO change "maps", "objectnodes" and "osd" to read from a config file
+        // TODO change "maps" and "osd" to read from a config file
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         if (distributed_crush_maps.size() == 0)
             return;
         DistributedMap<String, ObjectStorageNode> distributed_object_nodes = atomix.getMap("objectnodes");
         if (distributed_object_nodes.size() == 0)
             return;
-        List<CrushNode> osds = distributed_crush_maps.get(0).get_nodes_of_type("osd");
+        List<CrushNode> osds = distributed_crush_maps.get(distributed_crush_maps.size() - 1).get_nodes_of_type("osd");
 
         ObjectStorageNode osdn;
-        boolean grpc_is_failed;
-
+        boolean failed_state;
         // TODO Eventually will have to load from file, use loader.sample_crush_map() for now
         Loader loader = new Loader();
         CrushMap new_map = loader.sample_crush_map();
-
+        List<CrushNode> new_osds = new_map.get_nodes_of_type("osd");
         boolean changed = false;
         // TODO do this in a non hacky fashion
         for (CrushNode osd : osds) {
             // Execute GRPC heartbeat
             osdn = distributed_object_nodes.get(Integer.toString(osd.nodeID));
-            grpc_is_failed = !getHeartbeat(osdn.ip, osdn.port);
-            if (grpc_is_failed != osd.isFailed()) {
+            failed_state = !getHeartbeat(osdn.ip, osdn.port);
+            if (failed_state != osd.isFailed()) {
                 changed = true;
             }
-            if (grpc_is_failed)
-                new_map.get_node_with_id(osd.nodeID).fail();
 
         }
+        for (CrushNode osd: new_osds) {
+            osdn = distributed_object_nodes.get(Integer.toString(osd.nodeID));
+            failed_state = !getHeartbeat(osdn.ip, osdn.port);
+            if (failed_state)
+                osd.parent.failChildren(osd);
+        }
+
 
         // If any node state is changed update the distributed map
         if (changed) {
-            new_map.map_epoch = distributed_crush_maps.get(0).map_epoch + 1;
-            distributed_crush_maps.add(0, new_map);
+            new_map.map_epoch = distributed_crush_maps.get(distributed_crush_maps.size() - 1).map_epoch + 1;
+            distributed_crush_maps.add(new_map);
         }
+        System.out.println("Heartbeat");
 //        System.out.println(getHeartbeat("localhost",50051));
     }
 
@@ -70,12 +75,18 @@ public class Heartbeat implements Runnable {
          * @return true if running
          */
         HeartbeatClient client = new HeartbeatClient(ip, port);
-//        System.out.println("Checking up on node: " + ip + ":" + port);
         HeartbeatRequest request = HeartbeatRequest
                 .newBuilder()
                 .setStatus(false)
                 .build();
-        return client.getHeartbeat(request);
+        boolean status = client.getHeartbeat(request);
+//        System.out.println("Node: " + ip + ":" + port + " is reachable: " + status);
+        try {
+            client.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return status;
     }
 
 

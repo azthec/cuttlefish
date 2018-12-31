@@ -72,6 +72,49 @@ public class FileChunkUtils {
         return get_result;
     }
 
+    public static byte[] get_object(String oid, CrushMap crushMap) {
+        String oidWitouthVersion = oid.substring(0, oid.lastIndexOf("_"));
+        System.out.println("Getting object with ID: " + oid);
+
+//        ObjectStorageNode node = get_object_primary(metadataChunk.getChunkOid(), crushMap);
+        ObjectStorageNode node = get_random_object_osd(oidWitouthVersion, crushMap);
+        if (node == null) {
+            System.out.println("Failed to find node for object: " + oidWitouthVersion);
+            return new byte[0];
+        }
+        System.out.println("Getting from node: " + node.id);
+        FileChunkClient client = new FileChunkClient(node.ip, node.port);
+        byte [] get_result = client.getChunk(oid);
+        if (get_result == null || get_result.length <= 0) {
+            System.out.println("File getting failed");
+            return new byte[0];
+        }
+
+        try {
+            client.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return get_result;
+    }
+
+    public static byte[] getObjectFromAnyNodeInList(String oid, List<CrushNode> nodeList) {
+        List<ObjectStorageNode> objectStorageNodes = getOSNodesFromCrushNodes(nodeList);
+        ObjectStorageNode node = objectStorageNodes.get(new Random().nextInt(objectStorageNodes.size()));
+        FileChunkClient client = new FileChunkClient(node.ip, node.port);
+        byte [] get_result = client.getChunk(oid);
+        if (get_result == null || get_result.length <= 0) {
+            System.out.println("File getting failed");
+            return new byte[0];
+        }
+        try {
+            client.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return get_result;
+    }
+
     /**
      *
      * @param local_file_path, the absolute path to the file
@@ -234,6 +277,24 @@ public class FileChunkUtils {
         return post_result;
     }
 
+    //OSD function
+    public static boolean postByteArrayToNode(String oid, byte[] data, CrushNode crushNode) {
+        ObjectStorageNode node = Loader.get_osd_map().get(crushNode.nodeID + "");
+        if (node == null) {
+            System.out.println("Failed to find node info for object (node == null): " + oid);
+            return false;
+        }
+        FileChunkClient client = new FileChunkClient(node.ip, node.port);
+        boolean post_result = client.postChunkOSD(oid, data);
+        System.out.println("File posting returned: " + post_result + "\n");
+        try {
+            client.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return post_result;
+    }
+
     /**
      * Converts a local file to a byte array, that we can transmit
      * @param file
@@ -333,6 +394,17 @@ public class FileChunkUtils {
         } else {
             return null;
         }
+    }
+
+    public static List<ObjectStorageNode> getOSNodesFromCrushNodes(List<CrushNode> crushNodes) {
+        Loader loader = new Loader();
+        HashMap<String, ObjectStorageNode> hashMap = loader.get_osd_map();
+
+        List<ObjectStorageNode> result = new ArrayList<>();
+        for (CrushNode node : crushNodes) {
+            result.add(hashMap.get("" + node.nodeID));
+        }
+        return result;
     }
 
     private static MetadataNode getParentFromAbsPath(String path, MetadataTree metadataTree){

@@ -8,22 +8,19 @@ import io.atomix.core.value.AtomicValue;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static commons.FileChunkUtils.*;
 
 public class Main {
 
-    private final static String appSvIp = "10.132.0.11"; //"192.168.1.65"; INTERNAL IP PLZ
-
+    private final static String appSvIp = "192.168.1.67";
     private final static String path = "/home/diogo/";
 
     public static void main(String[] args) {
-//        testing();
-       test_file_posting();
-       try {
+        testing();
+        test_file_posting();
+        try {
             TimeUnit.SECONDS.sleep(5);
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -49,8 +46,10 @@ public class Main {
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
+        distributed_metadata_tree.get();
 
-        System.out.println(distributed_metadata_tree.get().goToNode("/test.mp4").getNumberOfChunks());
+        System.out.println(distributed_metadata_tree.get().getPgs().get(169).toString());
+
 
         atomix.stop();
     }
@@ -80,12 +79,12 @@ public class Main {
         try {
             boolean success = post_file(
                     path+"toogood.mp4",
-                    "/folder/tg.mp4",
-                    distributed_crush_maps.get(0),
+                    "/folder/tg2.mp4",
+                    distributed_crush_maps.get(distributed_crush_maps.size() - 1),
                     distributed_metadata_tree,
                     metaLock
             );
-            System.out.println("Concluded file posting with success= " +success);
+            System.out.println("Concluded file posting with success= " + success);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -97,27 +96,26 @@ public class Main {
         //System.err.close();
 
         AtomixUtils atomixUtils = new AtomixUtils();
-        Atomix atomix = atomixUtils.getServer("appclient", appSvIp, 5010).join();
+        Atomix atomix = atomixUtils.getServer("appclient",
+                appSvIp, 5010).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
 
         MetadataTree meta_tree = distributed_metadata_tree.get();
 
-        byte[][] file_bytes = get_file("/folder/tg.mp4", distributed_crush_maps.get(0), meta_tree);
-        System.out.println("file_bytes is null: "+(file_bytes == null));
+        byte[][] file_bytes = get_file("/folder/tg2.mp4", distributed_crush_maps.get(distributed_crush_maps.size() - 1), meta_tree);
 
         byteArraysToFile(file_bytes, new File(path + "toobad.mp4"));
 
         try {
             System.out.println(DigestUtils.sha256Hex(new FileInputStream(path + "toobad.mp4")));
-            System.out.println("stuff is null: "+ (meta_tree.goToNode("/folder/tg.mp4") == null));
-            System.out.println(meta_tree.goToNode("/folder/tg.mp4").getHash());
+            System.out.println(meta_tree.goToNode("/folder/tg2.mp4").getHash());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        System.out.println(distributed_metadata_tree.get().getPgs());
+//        System.out.println(distributed_metadata_tree.get().getPgs());
 
         atomix.stop();
     }

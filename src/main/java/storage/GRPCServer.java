@@ -16,9 +16,11 @@ import protos.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-
+import java.util.stream.Collectors;
 
 
 public class GRPCServer {
@@ -26,10 +28,14 @@ public class GRPCServer {
     private static AtomicValue<MetadataTree> distributed_metadata_tree;
     private static DistributedLock metaLock;
     private static String local_id;
+    private static int latestCrushMapEpoch;
 
     // TODO eventually read these settings from config
     public static final int CHUNK_SIZE = 1024 * 1024 * 2; // 2 MB
     public static final String DATAFOLDER = "data/";
+
+    //if we don't have a local list atomix freaks out due to possible concurrency issues
+    static List<CrushMap> crushMaps = new ArrayList<>();
 
     private static final Logger logger = Logger.getLogger(GRPCServer.class.getName());
 
@@ -84,15 +90,155 @@ public class GRPCServer {
         distributed_crush_maps = atomix.getList("maps");
         distributed_metadata_tree = atomix.getAtomicValue("mtree");
         metaLock = atomix.getLock("metaLock");
+        // TODO improve logic to get from rafts
+        crushMaps = new ArrayList<>(distributed_crush_maps);
+        distributed_crush_maps.addListener(event -> {
+            switch (event.type()) {
+                case ADD:
+                    System.out.println("Entry added: (" + event.element() + ")" +
+                            " | @ epoch: " + event.element().map_epoch);
+                    latestCrushMapEpoch = event.element().map_epoch;
+                    crushMaps.add(event.element());
+                    if(latestCrushMapEpoch > 0)
+                        repeerPGs(event.element(), distributed_metadata_tree.get());
+                    break;
+                case REMOVE:
+                    System.out.println("Entry removed: (" + event.element() +")" +
+                            " | @ epoch: " + event.element().map_epoch);
+                    break;
+            }
+        });
+
         server.start(port);
         server.blockUntilShutdown();
+    }
+
+    static void repeerPGs(CrushMap crushMap, MetadataTree metadataTree) {
+        List<CrushNode> currentOSDNodes = crushMap.get_root().get_children_of_type("osd");
+
+        for (int i = 0; i<Loader.getTotalPgs(); i++) {
+            // stop peering if theres a new version available
+            if (latestCrushMapEpoch > crushMap.map_epoch)
+                return;
+            List<CrushNode> currentPGOSDs = Crush.select_OSDs(crushMap.get_root(), "" + i);
+            List<CrushNode> updateOSDs = new ArrayList<>();
+            boolean updatePrimary = false;
+            boolean updateFailed = false;
+            if (currentPGOSDs.size() > 0
+                    && currentPGOSDs.get(0).nodeID == Integer.parseInt(local_id)) {
+                MetadataPlacementGroup metaPG = metadataTree.getPgs().get(i);
+                // TODO improve in decentralization, this update logic only functions because PG logs are centralized!
+                List<CrushNode> lastPGOSDs = Crush.select_OSDs(
+                        crushMaps.get(metaPG.getLastCompleteRepeerEpoch()).get_root(),
+                        "" + i);
+                List<CrushNode> aliveLastPGOSDs = currentOSDNodes.stream().filter(
+                        n -> !n.isFailed() && lastPGOSDs.stream().anyMatch(o -> o.nodeID == n.nodeID)
+                ).collect(Collectors.toList());
+                System.out.println("PG: " + i);
+//                for (CrushNode node : lastPGOSDs) {
+//                    System.out.println("Last PG: " + node.nodeID);
+//                }
+//                for (CrushNode node : aliveLastPGOSDs) {
+//                    System.out.println("Alive PG: " + node.nodeID);
+//                }
+                if (aliveLastPGOSDs.size() == 0) {
+                    // TODO error was here, size was returning 0
+                    System.out.println("Entire PG " + i
+                            + " OSDs of last updated epoch "
+                            + metaPG.getLastCompleteRepeerEpoch()
+                            + " are down, PG data temporarily unatainable!");
+                    continue;
+                }
+                for(CrushNode currentNode : currentPGOSDs) {
+                    if(lastPGOSDs.stream().noneMatch(o -> o.nodeID == currentNode.nodeID)) {
+                        if(currentNode.nodeID == currentPGOSDs.get(0).nodeID) {
+                            // must update primary
+                            updatePrimary = true;
+                        } else {
+                            // must update replica
+                            updateOSDs.add(currentNode);
+                        }
+                    }
+                }
+
+                if (updatePrimary)
+                    System.out.println("Must update new primary: " + lastPGOSDs.get(0).nodeID
+                            + " -> " + currentPGOSDs.get(0).nodeID);
+                if (updateOSDs.size() > 0) {
+                    System.out.print("Must update replicas:");
+                    for (CrushNode node : updateOSDs) {
+                        System.out.print(" " + node.nodeID);
+                    }
+                    System.out.println();
+                }
+                for (String object : metaPG.getObjects()) {
+                    String filename = object.substring(0, object.lastIndexOf("_"));
+                    MetadataNode metadataNode = metadataTree.goToNode(filename);
+                    if (metadataNode == null) {
+                        // this object is going to be deleted, skip
+                        System.out.println("File " + filename + " no longer exists, skipping object "
+                                + object);
+                        continue;
+                    }
+                    String oidWithVersion = object + "_" + metadataNode.getVersion();
+                    byte[] data = FileChunkUtils.getObjectFromAnyNodeInList(oidWithVersion, aliveLastPGOSDs);
+                    if (data == null) {
+                        System.out.println("Couldn't get object for update: " + oidWithVersion);
+                        updateFailed = true;
+                        break;
+                    }
+                    System.out.println("Updating object: " + object);
+                    if (updatePrimary) {
+                        try {
+                            System.out.println("Getting object " + object);
+                            FileUtils.writeByteArrayToFile(
+                                    new File(DATAFOLDER + oidWithVersion),
+                                    data);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            System.out.println("Couldn't store object: " + object);
+                            updateFailed = true;
+                            break;
+                        }
+                    } else if (updateOSDs.size() > 0) {
+                        for (CrushNode crushNode : updateOSDs) {
+                            System.out.println("Sending object to node: " + crushNode.nodeID);
+                            if(!FileChunkUtils.postByteArrayToNode(oidWithVersion, data, crushNode)) {
+                                System.out.println("OSD " + crushNode.nodeID + " failed post update: " + oidWithVersion);
+                                updateFailed = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (updateFailed) {
+                    // skip to next pg
+                    continue;
+                }
+                // if reached this point every OSD in PG was updated successfully
+                // TODO trylock and update
+                try {
+                    if (metaLock.tryLock(10, TimeUnit.SECONDS)) {
+                        metadataTree = distributed_metadata_tree.get();
+                        metaPG = metadataTree.getPgs().get(i);
+                        if (metaPG.getLastCompleteRepeerEpoch() < crushMap.map_epoch)
+                            metaPG.setLastCompleteRepeerEpoch(crushMap.map_epoch);
+                        distributed_metadata_tree.set(metadataTree);
+                        metaLock.unlock();
+                        }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        System.out.println("Finished repeering!");
     }
 
     static class GetHeartbeatGrpcImpl extends GetHeartbeatGrpc.GetHeartbeatImplBase {
 
         @Override
         public void getHeartbeat(HeartbeatRequest req, StreamObserver<HeartbeatReply> responseObserver) {
-            System.out.println("Received heartbeat request.");
+//            System.out.println("Received heartbeat request.");
             responseObserver.onNext(HeartbeatReply
                     .newBuilder()
                     .setStatus(true)
@@ -129,14 +275,23 @@ public class GRPCServer {
             String oid = request.getOid();
             byte[] data = request.getData().toByteArray();
             System.out.println("Storing chunk: " + request.getOid());
-            CrushMap crushMap = distributed_crush_maps.get(0);
+            CrushMap crushMap = distributed_crush_maps.get(distributed_crush_maps.size() - 1);
             String oidWitouthVersion = oid.substring(0, oid.lastIndexOf("_"));
             int pg = Crush.get_pg_id(oidWitouthVersion, Loader.getTotalPgs());
+            // TODO fix, currently need to disable this check, because otherwise osds can't peer
+            if(!distributed_metadata_tree.get().getPgs().get(pg).active(crushMap.map_epoch) && request.getReplication()) {
+                System.out.println("PG " + pg + " is currently inactive and not accepting writes!");
+                responseObserver.onNext(ChunkPostReply.newBuilder()
+                        .setState(false)
+                        .build());
+                responseObserver.onCompleted();
+                return;
+            }
             System.out.println("OSD calculated PG: " + pg);
             ObjectStorageNode node = FileChunkUtils.get_object_primary(oidWitouthVersion, crushMap);
 
             // TODO improve this logic to use OSD PG's
-            if (node != null && node.id == Integer.parseInt(local_id)) {
+            if (node != null && node.id == Integer.parseInt(local_id) && request.getReplication()) { // && request.replication
                 System.out.println(local_id + " is primary of PG " + pg);
                 for (int i = 0; i < Crush.numberOfReplicas; i++) {
                     boolean success = FileChunkUtils.post_object(oid, data, crushMap, i + 1);
@@ -145,7 +300,7 @@ public class GRPCServer {
                                 .setState(false)
                                 .build());
                         responseObserver.onCompleted();
-                        System.out.println("Testing if response observer onCompleted terminates execution.");
+                        return;
                     }
                 }
             }

@@ -18,6 +18,7 @@ message ChunkOid {
 message ChunkData {
     string oid = 1;
     bytes data = 2;
+    bool replication = 3;
 }
 
 message ChunkPostReply {

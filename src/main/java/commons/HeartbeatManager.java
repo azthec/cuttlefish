@@ -36,7 +36,7 @@ public class HeartbeatManager implements Runnable {
         // If local server is the leader but a heartbeat is not running, start it
         } else if (local_id.equals(leader) && heartbeat.isCancelled()) {
             heartbeat =  executorService.scheduleAtFixedRate(new Heartbeat(atomix),
-                    0, 3,
+                    0, 30,
                     TimeUnit.SECONDS
             );
         } else {

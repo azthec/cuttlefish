@@ -77,6 +77,25 @@ public class FileChunkClient {
             response = blockingStub.postChunk(ChunkData.newBuilder()
                     .setOid(oid)
                     .setData(ByteString.copyFrom(chunks))
+                    .setReplication(true)
+                    .build());
+            return response.getState();
+
+        } catch (StatusRuntimeException e) {
+            System.out.println(e.getStatus());
+        }
+
+        return false;
+    }
+
+    public boolean postChunkOSD(String oid, byte[] chunks) {
+        ChunkPostReply response;
+
+        try {
+            response = blockingStub.postChunk(ChunkData.newBuilder()
+                    .setOid(oid)
+                    .setData(ByteString.copyFrom(chunks))
+                    .setReplication(false)
                     .build());
             return response.getState();
 

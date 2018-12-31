@@ -10,7 +10,7 @@ public class Loader {
      *
      */
 
-    public CrushMap sample_crush_map() {
+    public static CrushMap sample_crush_map() {
         // nodes have hardcoded ips for now
         CrushMap cluster_map = new CrushMap();
 
@@ -44,25 +44,25 @@ public class Loader {
 
     public static HashMap<String, String> sample_monitors() {
         HashMap<String, String> res = new HashMap<>();
-        res.put("figo", "10.132.0.2:5000");
-        res.put("messi", "10.132.0.3:5000");
-        res.put("ronaldo", "10.132.0.4:5000");
+        res.put("figo", "192.168.1.67:5000");
+        res.put("messi", "192.168.1.67:5001");
+        res.put("ronaldo", "192.168.1.67:502");
         return res;
     }
 
-    public List<ObjectStorageNode> sample_osds() {
+    public static List<ObjectStorageNode> sample_osds() {
         // Hardcoded ip ports for now
         List<ObjectStorageNode> osds = new ArrayList<>();
-        osds.add(new ObjectStorageNode(0, "10.132.0.5", 50420));
-        osds.add(new ObjectStorageNode(1, "10.132.0.6", 50420));
-        osds.add(new ObjectStorageNode(2, "10.132.0.7", 50420));
-        osds.add(new ObjectStorageNode(3, "10.132.0.8", 50420));
-        osds.add(new ObjectStorageNode(4, "10.132.0.9", 50420));
-        osds.add(new ObjectStorageNode(5, "10.132.0.10", 50420));
+        osds.add(new ObjectStorageNode(0, "192.168.1.67", 50420));
+        osds.add(new ObjectStorageNode(1, "192.168.1.67", 50421));
+        osds.add(new ObjectStorageNode(2, "192.168.1.67", 50422));
+        osds.add(new ObjectStorageNode(3, "192.168.1.67", 50423));
+        osds.add(new ObjectStorageNode(4, "192.168.1.67", 50424));
+        osds.add(new ObjectStorageNode(5, "192.168.1.67", 50425));
         return osds;
     }
 
-    public HashMap<String, ObjectStorageNode> get_osd_map() {
+    static public HashMap<String, ObjectStorageNode> get_osd_map() {
         // be careful, ordering in hashmaps is not guaranteed!
         HashMap<String, ObjectStorageNode> hashMap = new HashMap<>();
         for (ObjectStorageNode osd : sample_osds()) {
@@ -85,7 +85,7 @@ public class Loader {
         root.addFolder("folder");
         return metadata_tree;
     }
-    
+
     public static int getTotalPgs() {
         return 255;
     }
