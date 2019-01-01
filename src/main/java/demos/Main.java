@@ -14,7 +14,7 @@ import static commons.FileChunkUtils.*;
 
 public class Main {
 
-    private final static String appSvIp = "192.168.1.67";
+    private final static String appSvIp = "192.168.1.104";
     private final static String path = "/home/diogo/";
 
     public static void main(String[] args) {
@@ -42,7 +42,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                appSvIp, 5005).join();
+                appSvIp, 58008).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
@@ -69,7 +69,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                appSvIp, 5010).join();
+                appSvIp, 58008).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
@@ -103,7 +103,7 @@ public class Main {
 
         AtomixUtils atomixUtils = new AtomixUtils();
         Atomix atomix = atomixUtils.getServer("appclient",
-                appSvIp, 5010).join();
+                appSvIp, 58008).join();
 
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
