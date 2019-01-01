@@ -92,8 +92,8 @@ public class EntryPoint {
                 System.out.println("did and mkdir");
                 break;
             case "rmdir":
-                System.out.println("doin an rmdir " + cmd_parted[1]);
-                res = rmdir(cmd_parted[1], currPath, lock); // changed to have lock
+                System.out.println("doin an rmdir " + cmd_parted[1]+'/');
+                res = rmdir(cmd_parted[1]+'/', currPath, lock); // changed to have lock
                 System.out.println("did and rmdir");
                 break;
             case "test":
@@ -105,12 +105,11 @@ public class EntryPoint {
             default:
                 // implementar > aqui
                 if (cmd_parted.length == 3) {
-                    // file1's contents to file2 (create if not exists)
                     if (cmd_parted[1].equals(">"))
                         res = file2file(cmd_parted[0], cmd_parted[2], currPath, lock);
                 }
-                cmd = "";
-                res = "That folder already exists...";
+                else
+                    res = "That command does not exist...";
                 break;
         }
 
@@ -165,25 +164,23 @@ public class EntryPoint {
         try {
             if (lock.tryLock(10, TimeUnit.SECONDS)) {
                 MetadataTree tree = distributed_metadata_tree.get();
-                MetadataNode currNode = tree.goToNode(currPath);
-                MetadataNode newNode = tree.goToNode(currNode, newFoldername);
+                MetadataNode currNode = tree.goToNodeIfNotDeleted(currPath);
+                MetadataNode newNode = tree.goToNodeIfNotDeleted(currPath+newFoldername+"/");
+                System.out.println("I WANNA DO: "+ currPath+"/"+newFoldername+"/");
                 if (newNode != null) {
                     System.out.println("node with that name already exists");
                     if (newNode.isFolder())
                         res = "That folder already exists...";
-                    else if (newNode.isFile()) res = "That folder already exists...";
-                    res = "That's an already existing file...";
+                    else if (newNode.isFile())
+                        res = "That's an already existing file...";
                 } else if (newNode == null) {
                     System.out.println("node with that name doesnt exist");
                     currNode.addFolder(newFoldername);
                 }
                 distributed_metadata_tree.set(tree);
-                res = "mkdir sucessful";
-                for (MetadataNode node:
-                     currNode.getChildren()) {
-                    System.out.println("child "+node.getName());
-                }
+                res += "\n mkdir finished";
                 lock.unlock();
+
             } else {
                 res = "Couldn't obtain the lock, operation aborted";
             }
@@ -207,34 +204,28 @@ public class EntryPoint {
             if (lock.tryLock(10, TimeUnit.SECONDS)) {
 
                 MetadataTree tree = distributed_metadata_tree.get();
-                MetadataNode currNode = tree.goToNode(currPath);
+                MetadataNode currNode = tree.goToNodeIfNotDeleted(currPath);
                 MetadataNode newNode;// = tree.goToNode(currNode,folderName);
 
                 if (folderName.charAt(0) == '/'){
                     System.out.println("abs path given");
-                    newNode = tree.goToNode(folderName); // abs path
+                    newNode = tree.goToNodeIfNotDeleted(folderName); // abs path
                 }
-
                 else{
                     System.out.println("relative path given");
-                    newNode = tree.goToNode(currNode, folderName); // relative path
+                    newNode = tree.goToNodeIfNotDeleted(currPath+folderName); // relative path
                 }
 
-                if (newNode != null) {
-                    System.out.println("node not null");
+                if (newNode != null && !newNode.isDeleted()) {
+                    System.out.println("node not null and not deleted");
                     if (newNode.isFolder()) {
                         System.out.println("node is folder");
                         if (newNode != currNode) {
                             // remove
                             System.out.println("node is not currnode");
                             MetadataNode parentNode = newNode.getParent();
-                            //parentNode.remove(newNode.getName()); -> dont do this, prevents reliable versions
-
-
+                            newNode.delete();
                         } else {
-
-
-                            // dont remove
                             System.out.println("node is currnode");
                             res = "Cannot remove your current directory";
                         }
@@ -272,13 +263,14 @@ public class EntryPoint {
         MetadataNode node = distributed_metadata_tree.get().goToNode(currPath);
         List<MetadataNode> children = node.getChildren();
         for (MetadataNode child : children) {
-            if (child.isFolder()) {
-                res += AppMisc.ANSI_BLUE + child.getName() + "/ " + AppMisc.ANSI_RESET;
-            } else {
-                res += child.getName() + " ";
+            if(!child.isDeleted()){
+                if (child.isFolder()) {
+                    res += AppMisc.ANSI_BLUE + child.getName() + "/ " + AppMisc.ANSI_RESET;
+                } else {
+                    res += child.getName() + " ";
+                }
             }
         }
-
         return res;
     }
 
