@@ -8,13 +8,18 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import static commons.Utils.splitArray;
+
 public class FileChunkUtils {
+    static int sizeOfFiles = 1024 * 1024; // 1MB
+
     /**
      *
      * @param file_path, the absolute path to the file
@@ -28,7 +33,6 @@ public class FileChunkUtils {
             System.out.println("File does not exist!");
             return new byte[0][0];
         }
-        int sizeOfFiles = 1024 * 1024; // 1MB
         byte[][] result = new byte[file_node.getNumberOfChunks()][];
 
         List<MetadataChunk> file_OIDs = file_node.getChunks();
@@ -129,6 +133,24 @@ public class FileChunkUtils {
             throws IOException {
         // this function MUST ONLY be called after getting the FILE write lock!
 
+        return post_bytes(Files.readAllBytes(new File(local_file_path).toPath()), remote_file_path,
+                crushMap, distributedMetadataTree, metaLock);
+    }
+
+    /**
+     *
+     * @param data, the data to post
+     * @param crushMap, the crush map
+     * @param , the metadata tree
+     * @return
+     */
+    public static boolean post_bytes(byte[] data, String remote_file_path,
+                                    CrushMap crushMap,
+                                    AtomicValue<MetadataTree> distributedMetadataTree,
+                                    DistributedLock metaLock)
+            throws IOException {
+        // this function MUST ONLY be called after getting the FILE write lock!
+
         System.out.println("Attempting to post file " + remote_file_path);
 
         MetadataTree metadataTree = distributedMetadataTree.get();
@@ -138,8 +160,16 @@ public class FileChunkUtils {
             System.out.println("Failed to post file, parent folder does not exist!");
             return false;
         }
+        if (data == null) {
+            System.out.println("Data is empty!");
+            return false;
+        }
 
-        byte[][] data = fileToByteArrays(new File(local_file_path));
+        String hash = DigestUtils.sha256Hex(data);
+        byte[][] dataMatrix = splitArray(data, sizeOfFiles);
+        if (dataMatrix == null){
+            System.out.println("Returned matrix is null!");
+        }
 
         MetadataNode oldNode = metadataTree.goToNode(remote_file_path);
         MetadataNode newNode = new MetadataNode(
@@ -151,18 +181,19 @@ public class FileChunkUtils {
         } else {
             newNode.setVersion(oldNode.getVersion() + 1);
         }
-        newNode.setNumberOfChunks(data.length);
-        newNode.setHash(DigestUtils.sha256Hex(new FileInputStream(local_file_path)));
+        newNode.setNumberOfChunks(dataMatrix.length);
+        newNode.setHash(hash);
+
 
         List<String> file_OIDs = newNode.getChunksOidList();
         newNode.setChunks(new ArrayList<>());
-        for (int i = 0; i < data.length; i++) {
+        for (int i = 0; i < dataMatrix.length; i++) {
             MetadataChunk metadataChunk = new MetadataChunk(
                     i, newNode.getVersion(),
-                    DigestUtils.sha256Hex(data[i]),
+                    DigestUtils.sha256Hex(dataMatrix[i]),
                     remote_file_path
             );
-            boolean post_result = post_object(metadataChunk, data[i], crushMap);
+            boolean post_result = post_object(metadataChunk, dataMatrix[i], crushMap);
             newNode.addChunk(metadataChunk);
             // TODO
             // int pg_id = Crush.get_pg_id(oid, crushMap.total_pgs);
@@ -203,6 +234,7 @@ public class FileChunkUtils {
         System.out.println("Failed to acquire metaLock or parent folder has been deleted!");
         return false;
     }
+
 
     public static boolean post_object(MetadataChunk metadataChunk, byte[] data, CrushMap crushMap) {
         System.out.println("Posting object with ID: " + metadataChunk.getChunkOidVersion());

@@ -29,6 +29,23 @@ public class Main {
         atomix.stop();
     }
 
+    public static void post_string_to_file() {
+        String textToPost = "copy pasterino oparino doparino";
+        try {
+            boolean success = post_file(
+                    path+"toogood.mp4",
+                    "/folder/tg.mp4",
+                    distributed_crush_maps.get(distributed_crush_maps.size() - 1),
+                    distributed_metadata_tree,
+                    metaLock
+            );
+
+            System.out.println("Concluded file posting with success= " + success);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void startAtomix() {
         AtomixUtils atomixUtils = new AtomixUtils();
         atomix = atomixUtils.getServer("appclient",
