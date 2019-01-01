@@ -472,27 +472,34 @@ public class FileChunkUtils {
         MetadataNode n1 = metadataTree.goToNode(f1);
         MetadataNode n2 = metadataTree.goToNode(f2);
 
-        if (n1 == null ) {
+        if (n1 == null || n1.isDeleted()) {
             System.out.println("The source MetadataNode is null.");
-        } else if (n1 != null && n1.isFolder()){
+            return false;
+        } else if (n1.isFolder()){
             System.out.println("The source MetadataNode is a folder.");
+            return false;
+        } else if (n2 != null && !n2.isDeleted()) {
+            System.out.println("Destination exists and contains data!");
+            return false;
         } else if (n2 != null && n2.isFolder()){
             System.out.println("The destination MetadataNode is a folder.");
-        } else if (n2 == null) {
-            System.out.println("The destination is null, checking for parent folder");
-            MetadataNode n2Parent =  metadataTree.goToParentFolder(f2);
-            if (n2Parent == null){
-                System.out.println("The parent of the destination MetadataNode is null");
-            }
-            else{
-                System.out.println("The parent node exists, creating the destination node.");
-                // parent is null until its set during the file lock write at the end
-                n2 = new MetadataNode(f2Name, MetadataNode.FILE, null);
-                n2.setVersion(0);
-                n2.setNumberOfChunks(n1.getNumberOfChunks());
-                n2.setHash(n1.getHash());
-            }
+            return false;
         }
+        System.out.println("The destination is null, checking for parent folder");
+        MetadataNode n2Parent =  metadataTree.goToParentFolder(f2);
+        if (n2Parent == null){
+            System.out.println("The parent of the destination MetadataNode is null");
+            return false;
+        }
+        else{
+            System.out.println("The parent node exists, creating the destination node.");
+            // parent is null until its set during the file lock write at the end
+            n2 = new MetadataNode(f2Name, MetadataNode.FILE, null);
+            n2.setVersion(0);
+            n2.setNumberOfChunks(n1.getNumberOfChunks());
+            n2.setHash(n1.getHash());
+        }
+
 
 
         System.out.println("Everything is in order, starting copy");

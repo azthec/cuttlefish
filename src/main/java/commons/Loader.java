@@ -48,21 +48,21 @@ public class Loader {
 
     public static HashMap<String, String> sample_monitors() {
         HashMap<String, String> res = new HashMap<>();
-        res.put("figo", figoIP ); //"192.168.1.67:5000"
-        res.put("messi", messiIP); //"192.168.1.67:5001"
-        res.put("ronaldo", ronaldoIP); //"192.168.1.67:502"
+        res.put("figo", "192.168.1.104:5000");
+        res.put("messi", "192.168.1.104:5001");
+        res.put("ronaldo", "192.168.1.104:5002");
         return res;
     }
 
     public static List<ObjectStorageNode> sample_osds() {
         // Hardcoded ip ports for now
         List<ObjectStorageNode> osds = new ArrayList<>();
-        osds.add(new ObjectStorageNode(0, "192.168.1.67", 50420));
-        osds.add(new ObjectStorageNode(1, "192.168.1.67", 50421));
-        osds.add(new ObjectStorageNode(2, "192.168.1.67", 50422));
-        osds.add(new ObjectStorageNode(3, "192.168.1.67", 50423));
-        osds.add(new ObjectStorageNode(4, "192.168.1.67", 50424));
-        osds.add(new ObjectStorageNode(5, "192.168.1.67", 50425));
+        osds.add(new ObjectStorageNode(0, "192.168.1.104", 50420));
+        osds.add(new ObjectStorageNode(1, "192.168.1.104", 50421));
+        osds.add(new ObjectStorageNode(2, "192.168.1.104", 50422));
+        osds.add(new ObjectStorageNode(3, "192.168.1.104", 50423));
+        osds.add(new ObjectStorageNode(4, "192.168.1.104", 50424));
+        osds.add(new ObjectStorageNode(5, "192.168.1.104", 50425));
         return osds;
     }
 
