@@ -49,6 +49,10 @@ public class MetadataNode implements Comparable<MetadataNode> {
         return path;
     }
 
+    private void setPath(String path) {
+        this.path = path;
+    }
+
     public int getVersion() {
         return version;
     }
@@ -136,6 +140,7 @@ public class MetadataNode implements Comparable<MetadataNode> {
         // Be careful when using this function to obey node addition rules
         // parent is set to this node when added and path adjusted, existing child is replaced
         child.setParent(this);
+        child.setPath(this.path + child.getName());
         remove(child.getName());
         this.children.add(child);
         return child;
@@ -180,7 +185,16 @@ public class MetadataNode implements Comparable<MetadataNode> {
 
     @Override
     public String toString() {
-        return path;
+        return "MetadataNode{" +
+                "name='" + name + '\'' +
+                ", path='" + path + '\'' +
+                ", type=" + type +
+                ", version=" + version +
+                ", children=" + children +
+                ", numberOfChunks=" + numberOfChunks +
+                ", hash='" + hash + '\'' +
+                ", deleted=" + deleted +
+                '}';
     }
 
     @Override

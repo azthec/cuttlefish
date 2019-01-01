@@ -428,7 +428,8 @@ public class FileChunkUtils {
      * @return a boolean indicating the success of the operation
      */
     @SuppressWarnings("Duplicates")
-    public static boolean copyChunks(String f1, String f2, CrushMap crushMap,
+    // f2 is the full file path, including the file name, f2Name is just the file name
+    public static boolean copyFile(String f1, String f2, String f2Name, CrushMap crushMap,
                                      AtomicValue<MetadataTree> distributedMetadataTree,
                                      DistributedLock metaLock) {
         // this function MUST ONLY be called after getting the FILE write lock! (file lock != metaLock)
@@ -446,15 +447,15 @@ public class FileChunkUtils {
             System.out.println("The destination MetadataNode is a folder.");
         } else if (n2 == null) {
             System.out.println("The destination is null, checking for parent folder");
-            MetadataNode n2Parent = getParentFromAbsPath(f2, metadataTree);
+            MetadataNode n2Parent =  metadataTree.goToParentFolder(f2);
             if (n2Parent == null){
                 System.out.println("The parent of the destination MetadataNode is null");
             }
             else{
                 System.out.println("The parent node exists, creating the destination node.");
                 // parent is null until its set during the file lock write at the end
-                n2 = new MetadataNode(n1.getName(), MetadataNode.FILE, null);
-                n2.setVersion(n1.getVersion());
+                n2 = new MetadataNode(f2Name, MetadataNode.FILE, null);
+                n2.setVersion(0);
                 n2.setNumberOfChunks(n1.getNumberOfChunks());
                 n2.setHash(n1.getHash());
                 n2.setChunks(n1.getChunks());
@@ -467,9 +468,9 @@ public class FileChunkUtils {
         if(n1 != null && n1.isFile() && n2 != null && n2.isFile()){
             byte[][] source = FileChunkUtils.get_file(n1.getPath(),crushMap,metadataTree);
             // MetadataNode node = metadataTree.goToNode(f2); node is n2
-            File into = new File(f2);
-            if (!FileChunkUtils.byteArraysToFile(source, into))
-                return false;
+//            File into = new File(f2);
+//            if (!FileChunkUtils.byteArraysToFile(source, into))
+//                return false;
             // chunk replacing (post from f1 to f2)
             for (int i=0; i<source.length; i++){
                 MetadataChunk metadataChunk = new MetadataChunk(i, n2.getVersion(), DigestUtils.sha256Hex(source[i]), f2);
@@ -487,10 +488,14 @@ public class FileChunkUtils {
             if (metaLock.tryLock(10, TimeUnit.SECONDS)) {
                 metadataTree = distributedMetadataTree.get();
                 MetadataNode parent = metadataTree.goToParentFolder(f2);
-                if(parent!=null && parent.isFolder()) {
+                if(parent!=null && parent.isFolder() && !parent.isDeleted()) {
                     try {
+//                        System.out.println(parent);
+//                        System.out.println(n1);
+//                        System.out.println(n2);
                         parent.addChild(n2);
                         distributedMetadataTree.set(metadataTree);
+                        metadataTree.print();
                         metaLock.unlock();
                         return true;
                     } catch (IllegalArgumentException e) {

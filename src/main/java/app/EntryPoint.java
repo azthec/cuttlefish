@@ -442,7 +442,7 @@ public class EntryPoint {
         MetadataNode n2 = currNode.get(file2);
 
 
-        if(FileChunkUtils.copyChunks(n1.getPath(), n2.getPath(), distributed_crush_maps.get(distributed_crush_maps.size()-1), distributed_metadata_tree, lock))
+        if(FileChunkUtils.copyFile(n1.getPath(), n2.getPath(), file2, distributed_crush_maps.get(distributed_crush_maps.size()-1), distributed_metadata_tree, lock))
             res = "success";
         else
             res = " > failed";
