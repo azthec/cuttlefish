@@ -232,6 +232,8 @@ public class EntryPoint {
 
 
                         } else {
+
+
                             // dont remove
                             System.out.println("node is currnode");
                             res = "Cannot remove your current directory";
@@ -318,6 +320,8 @@ public class EntryPoint {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+
+
             } else {
                 res = "Couldn't read the file";
                 target.delete();
