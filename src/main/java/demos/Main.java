@@ -12,7 +12,7 @@ import static commons.FileChunkUtils.*;
 
 public class Main {
 
-    private final static String appSvIp = "192.168.1.104";
+    private final static String appSvIp = "10.132.0.11"; //"192.168.1.104";
     private final static String path = "/home/diogo/";
 
     private static Atomix atomix;

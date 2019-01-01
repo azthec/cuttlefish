@@ -13,6 +13,13 @@ public class Loader {
     final static String figoIP = "10.132.0.2:5000";
     final static String messiIP = "10.132.0.3:5000";
     final static String ronaldoIP = "10.132.0.4:5000";
+    final static String osd1IP="10.132.0.5";
+    final static String osd2IP="10.132.0.6";
+    final static String osd3IP="10.132.0.7";
+    final static String osd4IP="10.132.0.8";
+    final static String osd5IP="10.132.0.9";
+    final static String osd6IP="10.132.0.10";
+
 
     public static CrushMap sample_crush_map() {
         // nodes have hardcoded ips for now
@@ -48,21 +55,24 @@ public class Loader {
 
     public static HashMap<String, String> sample_monitors() {
         HashMap<String, String> res = new HashMap<>();
-        res.put("figo", "192.168.1.104:5000");
+        res.put("figo", figoIP);
+        res.put("messi", messiIP);
+        res.put("ronaldo", ronaldoIP);
+        /*res.put("figo", "192.168.1.104:5000");
         res.put("messi", "192.168.1.104:5001");
-        res.put("ronaldo", "192.168.1.104:5002");
+        res.put("ronaldo", "192.168.1.104:5002");*/
         return res;
     }
 
     public static List<ObjectStorageNode> sample_osds() {
         // Hardcoded ip ports for now
         List<ObjectStorageNode> osds = new ArrayList<>();
-        osds.add(new ObjectStorageNode(0, "192.168.1.104", 50420));
-        osds.add(new ObjectStorageNode(1, "192.168.1.104", 50421));
-        osds.add(new ObjectStorageNode(2, "192.168.1.104", 50422));
-        osds.add(new ObjectStorageNode(3, "192.168.1.104", 50423));
-        osds.add(new ObjectStorageNode(4, "192.168.1.104", 50424));
-        osds.add(new ObjectStorageNode(5, "192.168.1.104", 50425));
+        osds.add(new ObjectStorageNode(0, osd1IP ,50420));
+        osds.add(new ObjectStorageNode(1, osd2IP, 50421));
+        osds.add(new ObjectStorageNode(2, osd3IP, 50422));
+        osds.add(new ObjectStorageNode(3, osd4IP ,50423));
+        osds.add(new ObjectStorageNode(4, osd5IP, 50424));
+        osds.add(new ObjectStorageNode(5, osd6IP, 50425));
         return osds;
     }
 
