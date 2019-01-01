@@ -169,6 +169,7 @@ public class FileChunkUtils {
         byte[][] dataMatrix = splitArray(data, sizeOfFiles);
         if (dataMatrix == null){
             System.out.println("Returned matrix is null!");
+            return false;
         }
 
         MetadataNode oldNode = metadataTree.goToNode(remote_file_path);
@@ -490,7 +491,6 @@ public class FileChunkUtils {
                 n2.setVersion(0);
                 n2.setNumberOfChunks(n1.getNumberOfChunks());
                 n2.setHash(n1.getHash());
-                n2.setChunks(n1.getChunks());
             }
         }
 
@@ -506,6 +506,7 @@ public class FileChunkUtils {
             // chunk replacing (post from f1 to f2)
             for (int i=0; i<source.length; i++){
                 MetadataChunk metadataChunk = new MetadataChunk(i, n2.getVersion(), DigestUtils.sha256Hex(source[i]), f2);
+                n2.getChunks().add(metadataChunk);
                 boolean postResult = post_object(metadataChunk,source[i],crushMap);
                 if(!postResult){
                     System.out.println("Failed to post file part = " + i + " !");
