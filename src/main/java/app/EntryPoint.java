@@ -144,24 +144,14 @@ public class EntryPoint {
         if (node.isFile()){
             if(node != null){
                 res += "\t full path: "+node.getPath()+"\n";
-                // still being downloaded??
-                if(node.getNumberOfChunks() > node.getChunks().size()){
-                    res += "\t file is still being downloaded";
-                    //res += "\t progress is:"+(node.getChunks().size()*2)+"mb/"+(node.getNumberOfChunks()*2)+"mb";
-                }
-                // downloaded
-                else if ( node.getNumberOfChunks() == node.getChunks().size()){
-                    res += "\t file is completely downloaded";
-                    res += "\t file size: "+(node.getNumberOfChunks()*2)+"MB \n";
-                }
-
+                res += "\t file size: "+(node.getNumberOfChunks())+"MB \n";
+                res += "\t file is completely downloaded";
             } else{
                 res = "There is no such file";
             }
         } else{
             res = "Can't do infofile on a folder...";
         }
-
         return res;
     }
 
@@ -238,7 +228,8 @@ public class EntryPoint {
                             // remove
                             System.out.println("node is not currnode");
                             MetadataNode parentNode = newNode.getParent();
-                            parentNode.remove(newNode.getName());
+                            //parentNode.remove(newNode.getName()); -> dont do this, prevents reliable versions
+
 
                         } else {
                             // dont remove
@@ -312,8 +303,26 @@ public class EntryPoint {
         MetadataNode childNode = currNode.get(fileName);
         if (childNode != null && childNode.isFile()) {
             System.out.println("cat function is currently broken!");
-            // TODO update fileBytes and getFileContent to use get_file and byteArraysToFile from FileChunkUtils
             byte[][] fileBytes =  FileChunkUtils.get_file(fileName,distributed_crush_maps.get(distributed_crush_maps.size()-1),tree);
+            File target = new File("tmpFile");
+            boolean success = FileChunkUtils.byteArraysToFile(fileBytes,target);
+            if(success){
+                try {
+                    BufferedReader br = null;
+                    br = new BufferedReader(new FileReader(target));
+                    String st;
+                    while ((st = br.readLine()) != null)
+                        res += st+"\n";
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                res = "Couldn't read the file";
+                target.delete();
+                return res;
+            }
         } else {
             if (childNode == null)
                 res = "The file doesn't exist.";
