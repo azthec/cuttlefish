@@ -171,46 +171,47 @@ public class GRPCServer {
                     }
                     System.out.println();
                 }
-                for (String object : metaPG.getObjects()) {
-                    String filename = object.substring(0, object.lastIndexOf("_"));
-                    MetadataNode metadataNode = metadataTree.goToNode(filename);
-                    if (metadataNode == null) {
-                        // this object is going to be deleted, skip
-                        System.out.println("File " + filename + " no longer exists, skipping object "
-                                + object);
-                        continue;
-                    }
-                    String oidWithVersion = object + "_" + metadataNode.getVersion();
-                    byte[] data = FileChunkUtils.getObjectFromAnyNodeInList(oidWithVersion, aliveLastPGOSDs);
-                    if (data == null) {
-                        System.out.println("Couldn't get object for update: " + oidWithVersion);
-                        updateFailed = true;
-                        break;
-                    }
-                    System.out.println("Updating object: " + object);
-                    if (updatePrimary) {
-                        try {
-                            System.out.println("Getting object " + object);
-                            FileUtils.writeByteArrayToFile(
-                                    new File(DATAFOLDER + oidWithVersion),
-                                    data);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            System.out.println("Couldn't store object: " + object);
+                if (updatePrimary || updateOSDs.size() > 0)
+                    for (String object : metaPG.getObjects()) {
+                        String filename = object.substring(0, object.lastIndexOf("_"));
+                        MetadataNode metadataNode = metadataTree.goToNode(filename);
+                        if (metadataNode == null) {
+                            // this object is going to be deleted, skip
+                            System.out.println("File " + filename + " no longer exists, skipping object "
+                                    + object);
+                            continue;
+                        }
+                        String oidWithVersion = object + "_" + metadataNode.getVersion();
+                        byte[] data = FileChunkUtils.getObjectFromAnyNodeInList(oidWithVersion, aliveLastPGOSDs);
+                        if (data == null) {
+                            System.out.println("Couldn't get object for update: " + oidWithVersion);
                             updateFailed = true;
                             break;
                         }
-                    } else if (updateOSDs.size() > 0) {
-                        for (CrushNode crushNode : updateOSDs) {
-                            System.out.println("Sending object to node: " + crushNode.nodeID);
-                            if(!FileChunkUtils.postByteArrayToNode(oidWithVersion, data, crushNode)) {
-                                System.out.println("OSD " + crushNode.nodeID + " failed post update: " + oidWithVersion);
+                        System.out.println("Updating object: " + object);
+                        if (updatePrimary) {
+                            try {
+                                System.out.println("Getting object " + object);
+                                FileUtils.writeByteArrayToFile(
+                                        new File(DATAFOLDER + oidWithVersion),
+                                        data);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                System.out.println("Couldn't store object: " + object);
                                 updateFailed = true;
                                 break;
                             }
+                        } else if (updateOSDs.size() > 0) {
+                            for (CrushNode crushNode : updateOSDs) {
+                                System.out.println("Sending object to node: " + crushNode.nodeID);
+                                if(!FileChunkUtils.postByteArrayToNode(oidWithVersion, data, crushNode)) {
+                                    System.out.println("OSD " + crushNode.nodeID + " failed post update: " + oidWithVersion);
+                                    updateFailed = true;
+                                    break;
+                                }
+                            }
                         }
                     }
-                }
                 if (updateFailed) {
                     // skip to next pg
                     continue;
