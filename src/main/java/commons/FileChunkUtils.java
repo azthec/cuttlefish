@@ -24,7 +24,7 @@ public class FileChunkUtils {
      */
     public static byte[][] get_file(String file_path, CrushMap crushMap, MetadataTree metadataTree) {
         MetadataNode file_node = metadataTree.goToNode(file_path);
-        if (file_node == null) {
+        if (file_node == null || file_node.isDeleted()) {
             System.out.println("File does not exist!");
             return new byte[0][0];
         }
@@ -134,7 +134,7 @@ public class FileChunkUtils {
         MetadataTree metadataTree = distributedMetadataTree.get();
         MetadataNode parent_node = metadataTree.goToParentFolder(remote_file_path);
         // TODO eventually throw folder does not exist error
-        if (parent_node == null) {
+        if (parent_node == null || parent_node.isDeleted()) {
             System.out.println("Failed to post file, parent folder does not exist!");
             return false;
         }

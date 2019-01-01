@@ -17,6 +17,7 @@ public class MetadataNode implements Comparable<MetadataNode> {
     private int numberOfChunks;
     private List<MetadataChunk> chunks;
     private String hash;
+    private boolean deleted;
 
     public MetadataNode getParent() {
         return parent;
@@ -100,6 +101,18 @@ public class MetadataNode implements Comparable<MetadataNode> {
         this.chunks.add(chunk);
     }
 
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void delete() {
+        this.deleted = true;
+    }
+
+    public void undelete() {
+        this.deleted = false;
+    }
+
     MetadataNode(String name, boolean type, MetadataNode parent) {
         this.parent = parent;
         this.type = type;
@@ -113,6 +126,7 @@ public class MetadataNode implements Comparable<MetadataNode> {
         } else {
             this.path = "/";
         }
+        this.deleted = false;
 
         children = new ArrayList<>();
         chunks = new ArrayList<>();
@@ -183,13 +197,16 @@ public class MetadataNode implements Comparable<MetadataNode> {
             String spaces = String.format("%"+ (depth + 4) +"s", "");
             MetadataNode node = iterator.next();
             String slash = "";
+            String deleted = "";
             if (node.isFolder())
                 slash = "/";
+            if (node.isDeleted())
+                deleted = " !";
 
             if (iterator.hasNext()) {
-                System.out.println(spaces + "├── " + node.name + slash);
+                System.out.println(spaces + "├── " + node.name + slash + deleted);
             } else {
-                System.out.println(spaces + "└── " + node.name + slash);
+                System.out.println(spaces + "└── " + node.name + slash + deleted);
             }
             if (!node.isLeaf()) {
                 node.print(depth + 4);

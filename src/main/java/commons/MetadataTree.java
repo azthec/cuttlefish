@@ -110,4 +110,40 @@ public class MetadataTree {
         return null;
     }
 
+    public MetadataNode goToNodeIfNotDeleted(String path) {
+        MetadataNode res = goToNode(path);
+        if(res != null && !res.isDeleted())
+            return res;
+        else
+            return null;
+    }
+
+    // fullPath includes the name of the dir to be created!
+    public boolean mkdir(String fullPath, String dirName) {
+        MetadataNode parent = goToParentFolder(fullPath);
+        if (parent == null || parent.isDeleted())
+            return false;
+        MetadataNode dir = parent.get(dirName);
+        if (dir != null) {
+            dir.undelete();
+            return true;
+        } else {
+            parent.addFolder(dirName);
+            return true;
+        }
+    }
+
+    public boolean rmdir(MetadataNode node) {
+        if (node == null)
+            return false;
+        for(MetadataNode child : node.getChildren()) {
+            if (!child.isDeleted()) {
+                System.out.println("Can't remove unempty folder!");
+                return false;
+            }
+        }
+        node.delete();
+        return true;
+    }
+
 }
