@@ -430,7 +430,7 @@ public class FileChunkUtils {
     @SuppressWarnings("Duplicates")
     public static boolean copyChunks(String f1, String f2, CrushMap crushMap,
                                      AtomicValue<MetadataTree> distributedMetadataTree,
-                                     DistributedLock metaLock) throws InvalidNodeException {
+                                     DistributedLock metaLock) {
         // this function MUST ONLY be called after getting the FILE write lock! (file lock != metaLock)
         // TODO test function in depth
 
@@ -439,16 +439,16 @@ public class FileChunkUtils {
         MetadataNode n2 = metadataTree.goToNode(f2);
 
         if (n1 == null ) {
-            throw new InvalidNodeException("The source MetadataNode is null.");
+            System.out.println("The source MetadataNode is null.");
         } else if (n1 != null && n1.isFolder()){
-            throw new InvalidNodeException("The source MetadataNode is a folder.");
+            System.out.println("The source MetadataNode is a folder.");
         } else if (n2 != null && n2.isFolder()){
-            throw new InvalidNodeException("The destination MetadataNode is a folder.");
+            System.out.println("The destination MetadataNode is a folder.");
         } else if (n2 == null) {
             System.out.println("The destination is null, checking for parent folder");
             MetadataNode n2Parent = getParentFromAbsPath(f2, metadataTree);
             if (n2Parent == null){
-                throw new InvalidNodeException("The parent of the destination MetadataNode is null");
+                System.out.println("The parent of the destination MetadataNode is null");
             }
             else{
                 System.out.println("The parent node exists, creating the destination node.");

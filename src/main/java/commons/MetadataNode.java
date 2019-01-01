@@ -27,6 +27,7 @@ public class MetadataNode implements Comparable<MetadataNode> {
         this.path = parent.getPath() + name;
     }
 
+
     public String getName() {
         return name;
     }

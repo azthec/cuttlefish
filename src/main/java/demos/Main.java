@@ -47,7 +47,6 @@ public class Main {
         DistributedList<CrushMap> distributed_crush_maps = atomix.getList("maps");
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
         distributed_metadata_tree.get();
-
         System.out.println(distributed_metadata_tree.get().getPgs().get(169).toString());
 
 
@@ -76,6 +75,12 @@ public class Main {
         AtomicValue<MetadataTree> distributed_metadata_tree = atomix.getAtomicValue("mtree");
         DistributedLock metaLock = atomix.getLock("metaLock");
 
+      /*  try {
+            post_file("example.txt",path, distributed_crush_maps.get(distributed_crush_maps.size()-1),distributed_metadata_tree, metaLock);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }*/
+
         try {
             boolean success = post_file(
                     path+"toogood.mp4",
@@ -84,6 +89,7 @@ public class Main {
                     distributed_metadata_tree,
                     metaLock
             );
+
             System.out.println("Concluded file posting with success= " + success);
         } catch (IOException e) {
             e.printStackTrace();

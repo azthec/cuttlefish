@@ -10,6 +10,10 @@ public class Loader {
      *
      */
 
+    final static String figoIP = "10.132.0.2:5000";
+    final static String messiIP = "10.132.0.3:5000";
+    final static String ronaldoIP = "10.132.0.4:5000";
+
     public static CrushMap sample_crush_map() {
         // nodes have hardcoded ips for now
         CrushMap cluster_map = new CrushMap();
@@ -44,9 +48,9 @@ public class Loader {
 
     public static HashMap<String, String> sample_monitors() {
         HashMap<String, String> res = new HashMap<>();
-        res.put("figo", "192.168.1.67:5000");
-        res.put("messi", "192.168.1.67:5001");
-        res.put("ronaldo", "192.168.1.67:502");
+        res.put("figo", figoIP ); //"192.168.1.67:5000"
+        res.put("messi", messiIP); //"192.168.1.67:5001"
+        res.put("ronaldo", ronaldoIP); //"192.168.1.67:502"
         return res;
     }
 

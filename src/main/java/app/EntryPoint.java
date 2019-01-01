@@ -71,6 +71,9 @@ public class EntryPoint {
         String res = "Could not execute the requested command!"; // default value
 
         switch (cmd_parted[0]) {
+            case "infofile":
+                res = infofile(currPath,cmd_parted[1]);
+                break;
             case "ls":
                 res = ls(currPath);
                 break;
@@ -104,7 +107,7 @@ public class EntryPoint {
                 if (cmd_parted.length == 3) {
                     // file1's contents to file2 (create if not exists)
                     if (cmd_parted[1].equals(">"))
-                        res = file2file(cmd_parted[0], cmd_parted[2], currPath);
+                        res = file2file(cmd_parted[0], cmd_parted[2], currPath, lock);
                 }
                 cmd = "";
                 res = "That folder already exists...";
@@ -122,6 +125,46 @@ public class EntryPoint {
     private String test(String currPath, DistributedLock lock) {
         return "";
     }
+
+    /**
+     * Gets information about a file:
+     *  -if completely downloaded,
+     *  -full path,
+     *  -size;
+     *  -if being downloaded: file size and neighbor list
+     * @param currPath the current path the client is in (this implementation assumes the file is also under this path)
+     * @param filename the name of the file
+     * @return a string as a response, in both positive and negative cases
+     */
+    private String infofile(String currPath, String filename){
+        MetadataTree tree = distributed_metadata_tree.get();
+        System.out.println("CURRPATH IS: "+currPath);
+        MetadataNode node = tree.goToNode(currPath+filename);
+        String res = "";
+        if (node.isFile()){
+            if(node != null){
+                res += "\t full path: "+node.getPath()+"\n";
+                // still being downloaded??
+                if(node.getNumberOfChunks() > node.getChunks().size()){
+                    res += "\t file is still being downloaded";
+                    //res += "\t progress is:"+(node.getChunks().size()*2)+"mb/"+(node.getNumberOfChunks()*2)+"mb";
+                }
+                // downloaded
+                else if ( node.getNumberOfChunks() == node.getChunks().size()){
+                    res += "\t file is completely downloaded";
+                    res += "\t file size: "+(node.getNumberOfChunks()*2)+"MB \n";
+                }
+
+            } else{
+                res = "There is no such file";
+            }
+        } else{
+            res = "Can't do infofile on a folder...";
+        }
+
+        return res;
+    }
+
 
     /**
      * @param newFoldername the name to create to the folder.
@@ -264,13 +307,13 @@ public class EntryPoint {
      */
     private String cat(String fileName, String currDir) {
         String res = "";
-        MetadataNode currNode = distributed_metadata_tree.get().goToNode(currDir);
+        MetadataTree tree = distributed_metadata_tree.get();
+        MetadataNode currNode = tree.goToNode(currDir);
         MetadataNode childNode = currNode.get(fileName);
         if (childNode != null && childNode.isFile()) {
             System.out.println("cat function is currently broken!");
             // TODO update fileBytes and getFileContent to use get_file and byteArraysToFile from FileChunkUtils
-//            byte[] fileBytes = FileChunkUtils.get_file(childNode.getPath(),crushMap,distributed_metadata_tree);
-//            res = getFileContent(fileBytes);
+            byte[][] fileBytes =  FileChunkUtils.get_file(fileName,distributed_crush_maps.get(distributed_crush_maps.size()-1),tree);
         } else {
             if (childNode == null)
                 res = "The file doesn't exist.";
@@ -376,24 +419,20 @@ public class EntryPoint {
      * @param currPath the client's current path
      * @return
      */
-    private String file2file(String file1, String file2, String currPath) {
+    private String file2file(String file1, String file2, String currPath,DistributedLock lock) {
 
-        String res = "";
+        String res;
 
-        // TODO fix copyChunks arguments to new version
+        MetadataTree t1 = distributed_metadata_tree.get();
+        MetadataNode currNode = t1.goToNode(currPath);
+        MetadataNode n1 = currNode.get(file1);
+        MetadataNode n2 = currNode.get(file2);
 
-//        Boolean operation = false;
-//        try {
-//            operation = FileChunkUtils.copyChunks(file1, file2, crushMap, distributed_metadata_tree);
-//        } catch (InvalidNodeException e) {
-//            //TODO treat exceptions so the server doesn't become an iridium rod at mach7 speed against a sequoia type of disaster
-//            System.out.println("Exception:");
-//            e.printStackTrace();
-//        }
-//
-//        if(!operation)
-//            res = "Check for any InvalidNodeException(s), redirect failed";
 
+        if(FileChunkUtils.copyChunks(n1.getPath(), n2.getPath(), distributed_crush_maps.get(distributed_crush_maps.size()-1), distributed_metadata_tree, lock))
+            res = "success";
+        else
+            res = " > failed";
         return res;
     }
 }
