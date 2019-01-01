@@ -117,7 +117,7 @@ public class GRPCServer {
         List<CrushNode> currentOSDNodes = crushMap.get_root().get_children_of_type("osd");
 
         for (int i = 0; i<Loader.getTotalPgs(); i++) {
-            // stop peering if theres a new version available
+            // stop peering if theres a new crushMap version available
             if (latestCrushMapEpoch > crushMap.map_epoch)
                 return;
             List<CrushNode> currentPGOSDs = Crush.select_OSDs(crushMap.get_root(), "" + i);
@@ -175,7 +175,7 @@ public class GRPCServer {
                     for (String object : metaPG.getObjects()) {
                         String filename = object.substring(0, object.lastIndexOf("_"));
                         MetadataNode metadataNode = metadataTree.goToNode(filename);
-                        if (metadataNode == null) {
+                        if (metadataNode == null || metadataNode.isDeleted()) {
                             // this object is going to be deleted, skip
                             System.out.println("File " + filename + " no longer exists, skipping object "
                                     + object);
