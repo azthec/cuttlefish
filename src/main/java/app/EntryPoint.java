@@ -15,13 +15,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import java.io.*;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static app.ApplicationServer.*;
-import static commons.FileMetadataUtils.createRemoteDirectory;
-import static commons.FileMetadataUtils.deleteRemote;
 
 
 @Path("/api")
@@ -50,7 +50,15 @@ public class EntryPoint {
             jsonObject = (JSONObject) parser.parse(stringBuilder.toString());
             String decodedCmd = URLDecoder.decode((String) jsonObject.get("cmd"), "UTF-8");
             System.out.println("Command received: " + decodedCmd);
-            cmd = exectuteCmd(decodedCmd, (String) jsonObject.get("currPath"));
+            byte[] bytes = null;
+
+            if(jsonObject.get("bytes") != null){
+                bytes = (byte[]) jsonObject.get("bytes");
+                System.out.println("bytes::: "+ new String(bytes, StandardCharsets.UTF_8));
+            }
+
+
+            cmd = exectuteCmd(decodedCmd, (String) jsonObject.get("currPath"), bytes);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -64,11 +72,15 @@ public class EntryPoint {
      * @param currPath is the current path of the client.
      * @return the result of that command, in String form.
      */
-    private String exectuteCmd(String cmd, String currPath) {
+    private String exectuteCmd(String cmd, String currPath,byte[] bytes) {
         String[] cmd_parted = cmd.split(" ");
         String res = "Could not execute the requested command!"; // default value
 
         switch (cmd_parted[0]) {
+            case "copyfileLR":
+                res = copyfileLR(cmd_parted[1], cmd_parted[2], bytes);
+                break;
+
             case "infofile":
                 res = infofile(currPath,cmd_parted[1]);
                 break;
@@ -111,6 +123,20 @@ public class EntryPoint {
                 break;
         }
 
+        return res;
+    }
+
+    private String copyfileLR(String filename, String remotePath, byte[] bytes){
+        String res = "failed";
+        try {
+            if(FileChunkUtils.post_bytes(bytes,
+                    remotePath+filename,
+                    distributed_crush_maps.get(distributed_crush_maps.size()-1),
+                    distributed_metadata_tree,lock))
+                res = "success";
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return res;
     }
 
@@ -158,7 +184,34 @@ public class EntryPoint {
      * @return an empty String for success or an error message.
      */
     private String mkdir(String newFoldername, String currPath, DistributedLock lock) {
-        return createRemoteDirectory(newFoldername, currPath, distributed_metadata_tree, lock);
+        String res = "";
+        try {
+            if (lock.tryLock(10, TimeUnit.SECONDS)) {
+                MetadataTree tree = distributed_metadata_tree.get();
+                MetadataNode currNode = tree.goToNodeIfNotDeleted(currPath);
+                MetadataNode newNode = tree.goToNodeIfNotDeleted(currPath+newFoldername+"/");
+                System.out.println("I WANNA DO: "+ currPath+"/"+newFoldername+"/");
+                if (newNode != null) {
+                    System.out.println("node with that name already exists");
+                    if (newNode.isFolder())
+                        res = "That folder already exists...";
+                    else if (newNode.isFile())
+                        res = "That's an already existing file...";
+                } else if (newNode == null) {
+                    System.out.println("node with that name doesnt exist");
+                    currNode.addFolder(newFoldername);
+                }
+                distributed_metadata_tree.set(tree);
+                res += "\n mkdir finished";
+                lock.unlock();
+
+            } else {
+                res = "Couldn't obtain the lock, operation aborted";
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return res;
     }
 
     /**
@@ -169,8 +222,58 @@ public class EntryPoint {
      * @return empty String for success, or an error message.
      */
     private String rmdir(String folderName, String currPath, DistributedLock lock) {
-        return deleteRemote(folderName, currPath, MetadataNode.FOLDER,
-                distributed_crush_maps, distributed_metadata_tree, lock);
+        String res = "";
+        try {
+            // lock success
+            if (lock.tryLock(10, TimeUnit.SECONDS)) {
+
+                MetadataTree tree = distributed_metadata_tree.get();
+                MetadataNode currNode = tree.goToNodeIfNotDeleted(currPath);
+                MetadataNode newNode;// = tree.goToNode(currNode,folderName);
+
+                if (folderName.charAt(0) == '/'){
+                    System.out.println("abs path given");
+                    newNode = tree.goToNodeIfNotDeleted(folderName); // abs path
+                }
+                else{
+                    System.out.println("relative path given");
+                    newNode = tree.goToNodeIfNotDeleted(currPath+folderName); // relative path
+                }
+
+                if (newNode != null && !newNode.isDeleted()) {
+                    System.out.println("node not null and not deleted");
+                    if (newNode.isFolder()) {
+                        System.out.println("node is folder");
+                        if (newNode != currNode) {
+                            // remove
+                            System.out.println("node is not currnode");
+                            MetadataNode parentNode = newNode.getParent();
+                            newNode.delete();
+                        } else {
+                            System.out.println("node is currnode");
+                            res = "Cannot remove your current directory";
+                        }
+                    } else if (newNode.isFile())
+                        System.out.println("node is a file");
+                        res = "That's a file...";
+                } else {
+                    System.out.println("no folder with that name");
+                    res = "There is no folder with that name";
+                }
+
+                distributed_metadata_tree.set(tree);
+                res = "rmdir concluded";
+                lock.unlock();
+            }
+            // lock no success
+            else {
+                res = "Couldn't obtain the lock, operation aborted";
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return res;
     }
 
     /**
@@ -218,7 +321,7 @@ public class EntryPoint {
         MetadataNode childNode = currNode.get(fileName);
         if (childNode != null && childNode.isFile()) {
             System.out.println("cat function is currently broken!");
-            byte[][] fileBytes =  FileChunkUtils.get_file(fileName,distributed_crush_maps.get(distributed_crush_maps.size()-1),tree);
+            byte[][] fileBytes =  FileChunkUtils.get_file(childNode.getPath(),distributed_crush_maps.get(distributed_crush_maps.size()-1),tree);
             File target = new File("tmpFile");
             boolean success = FileChunkUtils.byteArraysToFile(fileBytes,target);
             if(success){

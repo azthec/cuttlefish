@@ -1,10 +1,12 @@
 package client;
 
+import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
 
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.Scanner;
 
 public class ShellClient {
@@ -35,6 +37,22 @@ public class ShellClient {
             JSONObject object = new JSONObject();
             object.put("currPath", currDirectory);
             object.put("cmd",cmd);
+            System.out.println(Paths.get(".").toAbsolutePath());
+
+            if(cmd.split(" ")[0].equals("copyfileLR")){
+                File file = new File(cmd.split(" ")[1]);
+                if(!file.exists()){
+                    System.out.println("no exists");
+                    return;
+                }
+
+                InputStream stream = new FileInputStream(file);
+                byte[] bytes =  IOUtils.toByteArray(stream);
+                System.out.println(new String(bytes, StandardCharsets.UTF_8));
+                System.out.println("file has size: "+bytes.length);
+                object.put("bytes",new String(bytes));
+            }
+
             String jsonString = object.toString();
 
             //URL url = new URL("http://localhost:8080/api/");
