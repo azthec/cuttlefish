@@ -520,7 +520,6 @@ public class FileChunkUtils {
                     return false;
                 }
             }
-            n2.setVersion(n2.getVersion() + 1);
         }
 
         // TODO add new node to metaTree
