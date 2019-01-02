@@ -20,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static app.ApplicationServer.*;
 
@@ -78,8 +77,12 @@ public class EntryPoint {
         String res = "Could not execute the requested command!"; // default value
 
         switch (cmd_parted[0]) {
+
+            case "cprl":
+                res = cpRemoteLocal(cmd_parted[1],currPath);
+                break;
             case "cplr":
-                res = copyfileLR(cmd_parted[2], bytes, currPath);
+                res = cpLocalRemote(cmd_parted[2], bytes, currPath);
                 break;
             case "cprr":
                 res = file2file(absolutify(cmd_parted[1], currPath), cmd_parted[2], currPath, lock);
@@ -141,13 +144,80 @@ public class EntryPoint {
         return childNode.getPath();
     }
 
+    private static int calcTotalSize(byte[][] input){
+        System.out.println("Calculating total size!");
+        int total = 0;
+        for(byte[] bytes : input)
+            total += bytes.length;
+        return total;
+    }
 
-    private String copyfileLR(String remotePath, byte[] bytes, String currPath){
+    /**
+     * Flattens a byte[][] to a byte[]
+     * @param arr
+     * @return
+     */
+    private static byte[] flatten(byte[][] arr) {
+        System.out.println("Flattening matrix");
+        int size = calcTotalSize(arr);
+        System.out.println("Copying");
+        byte[] result = new byte[size];
+        int cursor = 0;
+        for(byte[] bytes : arr){
+            for(byte b: bytes){
+                result[cursor] = b;
+                cursor++;
+            }
+        }
+        System.out.println("Copied");
+        return result;
+    }
+
+
+
+    /**
+     * "Copies a file from Cephish to machine running shell client"
+     * @param remotePath
+     * @param currPath
+     * @return
+     */
+    private String cpRemoteLocal(String remotePath, String currPath){
+
+        MetadataTree tree = distributed_metadata_tree.get();
+        String res = "failed";
+
+        byte[][] fileBytes = FileChunkUtils.get_file(absolutify(remotePath,currPath),
+                distributed_crush_maps.get(distributed_crush_maps.size()-1),
+                tree);
+
+        if(fileBytes != null){
+            byte[] bytes2send = flatten(fileBytes);
+            res = bytes2send.toString();
+        }
+
+        return res;
+    }
+
+    /**
+     * Copies a file from the machine running the shell client to Cephish
+     * @param remotePath
+     * @param bytes
+     * @param currPath
+     * @return
+     */
+    private String cpLocalRemote(String remotePath, byte[] bytes, String currPath){
+        String res = "failed";
+
         if (!remotePath.startsWith("/")) {
             remotePath = currPath + remotePath;
         }
 
-        String res = "failed";
+        if(remotePath.length() == 1 && remotePath.charAt(0)=='/'){
+            res = "Give me a name plz.";
+            return res;
+        }
+
+
         try {
             if(FileChunkUtils.post_bytes(bytes,
                     remotePath,
@@ -188,7 +258,7 @@ public class EntryPoint {
             if(node != null){
                 res += "\t full path: "+node.getPath()+"\n";
                 res += "\t file size: "+(node.getNumberOfChunks())+"MB \n";
-                res += "\t file is completely downloaded";
+                //res += "\t file is completely downloaded";
             } else{
                 res = "There is no such file";
             }
@@ -276,7 +346,6 @@ public class EntryPoint {
 
 
         if (childNode != null && childNode.isFile()) {
-            System.out.println("cat function is currently broken!");
             byte[][] fileBytes =  FileChunkUtils.get_file(childNode.getPath(),distributed_crush_maps.get(distributed_crush_maps.size()-1),tree);
             File target = new File("tmpFile");
             boolean success = FileChunkUtils.byteArraysToFile(fileBytes,target);
@@ -345,8 +414,8 @@ public class EntryPoint {
      */
     private String cd(String folder, String currDir) {
         MetadataNode currNode = distributed_metadata_tree.get().goToNode(currDir);
-        System.out.println("curr node has path: " + currNode.getPath());
-        System.out.println("Current node is: " + currNode.getPath());
+      /*  System.out.println("curr node has path: " + currNode.getPath());
+        System.out.println("Current node is: " + currNode.getPath());*/
         MetadataNode nextNode;
 
         if (folder.charAt(0) == '/') {

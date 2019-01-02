@@ -1,5 +1,6 @@
 package client;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
 
@@ -41,6 +42,7 @@ public class ShellClient {
             System.out.println(Paths.get(".").toAbsolutePath());
             System.out.println("Command: " + cmd);
 
+            // copy local -> remote special case
             if(cmd.split("%20")[0].equals("cplr")){
                 String localFilePath = unURLifyCMD(cmd.split("%20")[1]);
                 System.out.println(localFilePath);
@@ -55,15 +57,13 @@ public class ShellClient {
 
                 InputStream stream = new FileInputStream(file);
                 byte[] bytes =  IOUtils.toByteArray(stream);
-                System.out.println(new String(bytes, StandardCharsets.UTF_8));
-                System.out.println("file has size: "+bytes.length);
                 object.put("bytes",new String(bytes));
             }
 
             String jsonString = object.toString();
 
-            URL url = new URL("http://localhost:10000/api/");
-//            URL url = new URL("http://104.199.22.92:10000/api/");
+            //URL url = new URL("http://localhost:10000/api/");
+            URL url = new URL("http://104.199.22.92:10000/api/");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -88,6 +88,11 @@ public class ShellClient {
 
             if(unURLifyCMD(cmd).split(" ")[0].equals("cd")){
                 updateCurrDir(resReceived);
+            } else if (unURLifyCMD(cmd).split(" ")[0].equals("cprl")){
+                byte[] bytes = resReceived.getBytes();
+                System.out.println("writting");
+                FileUtils.writeByteArrayToFile(new File(unURLifyCMD(cmd).split(" ")[2]), bytes);
+                System.out.println("written");
             }
 
             conn.disconnect();
