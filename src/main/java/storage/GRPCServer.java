@@ -18,6 +18,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -108,6 +111,17 @@ public class GRPCServer {
                     break;
             }
         });
+
+
+        // cleanup crew
+        ScheduledExecutorService executorService  = Executors.newSingleThreadScheduledExecutor();
+        ScheduledFuture<?> scheduledFuture = executorService.scheduleAtFixedRate(
+                new CleanupRunnable(DATAFOLDER, distributed_metadata_tree),
+                0, 30,
+                TimeUnit.SECONDS
+        );
+
+
 
         server.start(port);
         server.blockUntilShutdown();
