@@ -7,6 +7,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class ShellClient {
@@ -38,11 +39,17 @@ public class ShellClient {
             object.put("currPath", currDirectory);
             object.put("cmd",cmd);
             System.out.println(Paths.get(".").toAbsolutePath());
+            System.out.println("Command: " + cmd);
 
-            if(cmd.split(" ")[0].equals("copyfileLR")){
-                File file = new File(cmd.split(" ")[1]);
+            if(cmd.split("%20")[0].equals("cplr")){
+                String localFilePath = unURLifyCMD(cmd.split("%20")[1]);
+                System.out.println(localFilePath);
+                File file = new File(localFilePath);
+                if(file == null){
+                    System.out.println("Failed to get filename.");
+                }
                 if(!file.exists()){
-                    System.out.println("no exists");
+                    System.out.println("File dosen't exist.");
                     return;
                 }
 
@@ -55,8 +62,8 @@ public class ShellClient {
 
             String jsonString = object.toString();
 
-            //URL url = new URL("http://localhost:8080/api/");
-            URL url = new URL("http://104.199.22.92:10000/api/");
+            URL url = new URL("http://localhost:10000/api/");
+//            URL url = new URL("http://104.199.22.92:10000/api/");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -85,10 +92,9 @@ public class ShellClient {
 
             conn.disconnect();
 
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+            System.out.println("IOException");
         }
     }
     //https://stackoverflow.com/questions/14321873/java-url-encoding-urlencoder-vs-uri

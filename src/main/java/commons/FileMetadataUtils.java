@@ -49,9 +49,9 @@ public class FileMetadataUtils {
     }
 
     public static String deleteRemote(String folderName, String currPath, boolean type,
-                                       DistributedList<CrushMap> distributed_crush_maps,
-                                       AtomicValue<MetadataTree> distributed_metadata_tree,
-                                       DistributedLock lock) {
+                                      DistributedList<CrushMap> distributed_crush_maps,
+                                      AtomicValue<MetadataTree> distributed_metadata_tree,
+                                      DistributedLock lock) {
         String res = "";
         try {
             // lock success

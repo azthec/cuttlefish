@@ -1,6 +1,7 @@
 package app;
 
 import commons.FileChunkUtils;
+import commons.FileMetadataUtils;
 import commons.MetadataNode;
 import commons.MetadataTree;
 import io.atomix.core.lock.DistributedLock;
@@ -53,7 +54,7 @@ public class EntryPoint {
             byte[] bytes = null;
 
             if(jsonObject.get("bytes") != null){
-                bytes = (byte[]) jsonObject.get("bytes");
+                bytes = jsonObject.get("bytes").toString().getBytes();
                 System.out.println("bytes::: "+ new String(bytes, StandardCharsets.UTF_8));
             }
 
@@ -77,10 +78,12 @@ public class EntryPoint {
         String res = "Could not execute the requested command!"; // default value
 
         switch (cmd_parted[0]) {
-            case "copyfileLR":
-                res = copyfileLR(cmd_parted[1], cmd_parted[2], bytes);
+            case "cplr":
+                res = copyfileLR(cmd_parted[2], bytes, currPath);
                 break;
-
+            case "cprr":
+                res = file2file(absolutify(cmd_parted[1], currPath), cmd_parted[2], currPath, lock);
+                break;
             case "infofile":
                 res = infofile(currPath,cmd_parted[1]);
                 break;
@@ -97,14 +100,10 @@ public class EntryPoint {
                 res = cat(cmd_parted[1], currPath); // not adding lock for now
                 break;
             case "mkdir":
-                System.out.println("doin an mkdir " + cmd_parted[1]);
                 res = mkdir(cmd_parted[1], currPath, lock); // changed to have lock
-                System.out.println("did and mkdir");
                 break;
             case "rmdir":
-                System.out.println("doin an rmdir " + cmd_parted[1]+'/');
-                res = rmdir(cmd_parted[1]+'/', currPath, lock); // changed to have lock
-                System.out.println("did and rmdir");
+                res = rmdir(absolutify(cmd_parted[1], currPath), currPath, lock); // changed to have lock
                 break;
             case "test":
                 res = test(currPath, lock); // does not have lock (add if need be)
@@ -116,7 +115,7 @@ public class EntryPoint {
                 // implementar > aqui
                 if (cmd_parted.length == 3) {
                     if (cmd_parted[1].equals(">"))
-                        res = file2file(cmd_parted[0], cmd_parted[2], currPath, lock);
+                        res = file2file(absolutify(cmd_parted[0], currPath), cmd_parted[2], currPath, lock);
                 }
                 else
                     res = "That command does not exist...";
@@ -126,11 +125,32 @@ public class EntryPoint {
         return res;
     }
 
-    private String copyfileLR(String filename, String remotePath, byte[] bytes){
+    private String absolutify(String fileName, String currPath) {
+        MetadataTree tree = distributed_metadata_tree.get();
+        MetadataNode currNode = tree.goToNode(currPath);
+        MetadataNode childNode;
+
+        if(fileName.startsWith("/"))
+            childNode = tree.goToNodeIfNotDeleted(fileName);
+        else
+            childNode = currNode.get(fileName);
+
+        if(childNode == null)
+            return "Node " + fileName + " does not exist!";
+        System.out.println("absolutify: " + childNode.getPath());
+        return childNode.getPath();
+    }
+
+
+    private String copyfileLR(String remotePath, byte[] bytes, String currPath){
+        if (!remotePath.startsWith("/")) {
+            remotePath = currPath + remotePath;
+        }
+
         String res = "failed";
         try {
             if(FileChunkUtils.post_bytes(bytes,
-                    remotePath+filename,
+                    remotePath,
                     distributed_crush_maps.get(distributed_crush_maps.size()-1),
                     distributed_metadata_tree,lock))
                 res = "success";
@@ -184,34 +204,10 @@ public class EntryPoint {
      * @return an empty String for success or an error message.
      */
     private String mkdir(String newFoldername, String currPath, DistributedLock lock) {
-        String res = "";
-        try {
-            if (lock.tryLock(10, TimeUnit.SECONDS)) {
-                MetadataTree tree = distributed_metadata_tree.get();
-                MetadataNode currNode = tree.goToNodeIfNotDeleted(currPath);
-                MetadataNode newNode = tree.goToNodeIfNotDeleted(currPath+newFoldername+"/");
-                System.out.println("I WANNA DO: "+ currPath+"/"+newFoldername+"/");
-                if (newNode != null) {
-                    System.out.println("node with that name already exists");
-                    if (newNode.isFolder())
-                        res = "That folder already exists...";
-                    else if (newNode.isFile())
-                        res = "That's an already existing file...";
-                } else if (newNode == null) {
-                    System.out.println("node with that name doesnt exist");
-                    currNode.addFolder(newFoldername);
-                }
-                distributed_metadata_tree.set(tree);
-                res += "\n mkdir finished";
-                lock.unlock();
-
-            } else {
-                res = "Couldn't obtain the lock, operation aborted";
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return res;
+        if (newFoldername.contains("/"))
+            return "Name must not contain /";
+        return FileMetadataUtils.createRemoteDirectory(newFoldername, currPath,
+                distributed_metadata_tree, lock);
     }
 
     /**
@@ -222,58 +218,8 @@ public class EntryPoint {
      * @return empty String for success, or an error message.
      */
     private String rmdir(String folderName, String currPath, DistributedLock lock) {
-        String res = "";
-        try {
-            // lock success
-            if (lock.tryLock(10, TimeUnit.SECONDS)) {
-
-                MetadataTree tree = distributed_metadata_tree.get();
-                MetadataNode currNode = tree.goToNodeIfNotDeleted(currPath);
-                MetadataNode newNode;// = tree.goToNode(currNode,folderName);
-
-                if (folderName.charAt(0) == '/'){
-                    System.out.println("abs path given");
-                    newNode = tree.goToNodeIfNotDeleted(folderName); // abs path
-                }
-                else{
-                    System.out.println("relative path given");
-                    newNode = tree.goToNodeIfNotDeleted(currPath+folderName); // relative path
-                }
-
-                if (newNode != null && !newNode.isDeleted()) {
-                    System.out.println("node not null and not deleted");
-                    if (newNode.isFolder()) {
-                        System.out.println("node is folder");
-                        if (newNode != currNode) {
-                            // remove
-                            System.out.println("node is not currnode");
-                            MetadataNode parentNode = newNode.getParent();
-                            newNode.delete();
-                        } else {
-                            System.out.println("node is currnode");
-                            res = "Cannot remove your current directory";
-                        }
-                    } else if (newNode.isFile())
-                        System.out.println("node is a file");
-                        res = "That's a file...";
-                } else {
-                    System.out.println("no folder with that name");
-                    res = "There is no folder with that name";
-                }
-
-                distributed_metadata_tree.set(tree);
-                res = "rmdir concluded";
-                lock.unlock();
-            }
-            // lock no success
-            else {
-                res = "Couldn't obtain the lock, operation aborted";
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        return res;
+        return FileMetadataUtils.deleteRemote(folderName, currPath, MetadataNode.FOLDER,
+                distributed_crush_maps, distributed_metadata_tree, lock);
     }
 
     /**
@@ -318,7 +264,17 @@ public class EntryPoint {
         String res = "";
         MetadataTree tree = distributed_metadata_tree.get();
         MetadataNode currNode = tree.goToNode(currDir);
-        MetadataNode childNode = currNode.get(fileName);
+        MetadataNode childNode;
+
+        if(fileName.startsWith("/"))
+            childNode = tree.goToNodeIfNotDeleted(fileName);
+        else
+            childNode = currNode.get(fileName);
+
+        if(childNode == null)
+            return "Node " + fileName + " does not exist!";
+
+
         if (childNode != null && childNode.isFile()) {
             System.out.println("cat function is currently broken!");
             byte[][] fileBytes =  FileChunkUtils.get_file(childNode.getPath(),distributed_crush_maps.get(distributed_crush_maps.size()-1),tree);
@@ -448,20 +404,34 @@ public class EntryPoint {
      * @param currPath the client's current path
      * @return
      */
-    private String file2file(String file1, String file2, String currPath,DistributedLock lock) {
+    private String file2file(String file1, String file2, String currPath, DistributedLock lock) {
 
         String res;
 
         MetadataTree t1 = distributed_metadata_tree.get();
         MetadataNode currNode = t1.goToNode(currPath);
-        MetadataNode n1 = currNode.get(file1);
-        MetadataNode n2 = currNode.get(file2);
+        MetadataNode n1;
+        String sn2;
+
+        if(file1.startsWith("/"))
+            n1 = t1.goToNodeIfNotDeleted(file1);
+        else
+            n1 = currNode.get(file1);
+
+        if(file2.startsWith("/"))
+            sn2 = file2;
+        else
+            sn2 = currNode.getPath() + file2;
+
+        if(n1 == null)
+            return "Node " + file1 + " does not exist!";
 
 
-        if(FileChunkUtils.copyFile(n1.getPath(), n2.getPath(), file2, distributed_crush_maps.get(distributed_crush_maps.size()-1), distributed_metadata_tree, lock))
+
+        if(FileChunkUtils.copyFile(n1.getPath(), sn2, file2, distributed_crush_maps.get(distributed_crush_maps.size()-1), distributed_metadata_tree, lock))
             res = "success";
         else
-            res = " > failed";
+            res = "failed";
         return res;
     }
 }
