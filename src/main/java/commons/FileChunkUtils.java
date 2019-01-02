@@ -9,16 +9,14 @@ import org.apache.commons.io.IOUtils;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 
 import static commons.Utils.splitArray;
 
 public class FileChunkUtils {
     static int sizeOfFiles = 1024 * 1024; // 1MB
+    static int MAXNUMBEROFTHREADS = 2;
 
     /**
      *
@@ -35,18 +33,56 @@ public class FileChunkUtils {
         }
         byte[][] result = new byte[file_node.getNumberOfChunks()][];
 
+        ExecutorService pool = Executors.newFixedThreadPool(MAXNUMBEROFTHREADS);
+        ArrayList<Future<byte[]>> threads = new ArrayList<>();
+
         List<MetadataChunk> file_OIDs = file_node.getChunks();
-        byte[] get_result = new byte[0];
+        byte[] get_result;
         for (int i = 0; i < file_node.getNumberOfChunks(); i++) {
-            get_result = get_object(file_OIDs.get(i), crushMap); //.getChunkOidVersion()
-            if (get_result == null || get_result.length <= 0) {
+//            get_result = get_object(file_OIDs.get(i), crushMap); //.getChunkOidVersion()
+            Callable<byte[]> callable = new CallableGetObject(file_OIDs.get(i), crushMap);
+            Future<byte[]> future = pool.submit(callable);
+            threads.add(future);
+//            if (get_result == null || get_result.length <= 0) {
+//                System.out.println("File getting failed");
+//                return new byte[0][0];
+//            }
+//            result[i] = get_result;
+
+        }
+        int i = 0;
+        for (Future<byte[]> future : threads) {
+            try {
+                // returns a list of Futures representing the tasks,
+                // in the same sequential order as produced by the iterator for the given task list.
+                get_result = future.get();
+                if (get_result == null || get_result.length <= 0) {
+                    System.out.println("File getting failed");
+                    return new byte[0][0];
+                }
+                result[i] = get_result;
+                i++;
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
                 System.out.println("File getting failed");
                 return new byte[0][0];
             }
-            result[i] = get_result;
         }
+
+        System.out.println(Arrays.toString(result));
+
+//        pool.shutdown();
+//        try {
+//            pool.awaitTermination(10, TimeUnit.SECONDS);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//            System.out.println("Interrupted while closing pool!");
+//            return new byte[0][0];
+//        }
+
+
         System.out.println("Got complete file successfully, with size: "
-                + ((result.length - 1) * 1024 * 1024 + get_result.length)
+                + ((result.length - 1) * 1024 * 1024 + result[result.length -1].length)
                 + " bytes.");
         return result;
     }
@@ -184,26 +220,48 @@ public class FileChunkUtils {
         }
         newNode.setNumberOfChunks(dataMatrix.length);
         newNode.setHash(hash);
-
-
-        List<String> file_OIDs = newNode.getChunksOidList();
         newNode.setChunks(new ArrayList<>());
+
+        ExecutorService pool = Executors.newFixedThreadPool(MAXNUMBEROFTHREADS);
+        ArrayList<Future<Boolean>> threads = new ArrayList<>();
+
+
         for (int i = 0; i < dataMatrix.length; i++) {
             MetadataChunk metadataChunk = new MetadataChunk(
                     i, newNode.getVersion(),
                     DigestUtils.sha256Hex(dataMatrix[i]),
                     remote_file_path
             );
-            boolean post_result = post_object(metadataChunk, dataMatrix[i], crushMap);
             newNode.addChunk(metadataChunk);
-            // TODO
-            // int pg_id = Crush.get_pg_id(oid, crushMap.total_pgs);
-            // PG-objmapper.add(metadataChunk, pg_id);
-            if (!post_result) {
-                System.out.println("Failed to post file part = " + i + " !");
+//            boolean post_result = post_object(metadataChunk, dataMatrix[i], crushMap);
+            Callable<Boolean> callable = new CallablePostObject(metadataChunk, dataMatrix[i], crushMap);
+            Future<Boolean> future = pool.submit(callable);
+            threads.add(future);
+
+//            if (!post_result) {
+//                System.out.println("Failed to post file part = " + i + " !");
+//                return false;
+//            }
+        }
+        for (Future<Boolean> future : threads) {
+            try {
+                if(!future.get())
+                    return false;
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
                 return false;
             }
         }
+
+        pool.shutdown();
+        try {
+            pool.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            System.out.println("Interrupted while closing pool!");
+            return false;
+        }
+
         System.out.println("Posted complete file successfully!");
 
         try {
