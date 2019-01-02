@@ -58,9 +58,9 @@ public class Loader {
         res.put("figo", figoIP);
         res.put("messi", messiIP);
         res.put("ronaldo", ronaldoIP);
-        /*res.put("figo", "192.168.1.104:5000");
-        res.put("messi", "192.168.1.104:5001");
-        res.put("ronaldo", "192.168.1.104:5002");*/
+        /*res.put("figo", "192.168.1.100:5000");
+        res.put("messi", "192.168.1.100:5001");
+        res.put("ronaldo", "192.168.1.100:5002");*/
         return res;
     }
 
@@ -68,11 +68,17 @@ public class Loader {
         // Hardcoded ip ports for now
         List<ObjectStorageNode> osds = new ArrayList<>();
         osds.add(new ObjectStorageNode(0, osd1IP ,50420));
-        osds.add(new ObjectStorageNode(1, osd2IP, 50421));
-        osds.add(new ObjectStorageNode(2, osd3IP, 50422));
-        osds.add(new ObjectStorageNode(3, osd4IP ,50423));
-        osds.add(new ObjectStorageNode(4, osd5IP, 50424));
-        osds.add(new ObjectStorageNode(5, osd6IP, 50425));
+        osds.add(new ObjectStorageNode(1, osd2IP, 50420));
+        osds.add(new ObjectStorageNode(2, osd3IP, 50420));
+        osds.add(new ObjectStorageNode(3, osd4IP ,50420));
+        osds.add(new ObjectStorageNode(4, osd5IP, 50420));
+        osds.add(new ObjectStorageNode(5, osd6IP, 50420));
+//        osds.add(new ObjectStorageNode(0, "192.168.1.100" ,50420));
+//        osds.add(new ObjectStorageNode(1, "192.168.1.100", 50421));
+//        osds.add(new ObjectStorageNode(2, "192.168.1.100", 50422));
+//        osds.add(new ObjectStorageNode(3, "192.168.1.100" ,50423));
+//        osds.add(new ObjectStorageNode(4, "192.168.1.100", 50424));
+//        osds.add(new ObjectStorageNode(5, "192.168.1.100", 50425));
         return osds;
     }
 
