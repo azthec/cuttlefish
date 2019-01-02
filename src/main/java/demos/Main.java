@@ -14,6 +14,8 @@ public class Main {
 
     private final static String appSvIp = "10.132.0.11"; //"192.168.1.104";
     private final static String path = "/home/diogo/";
+    private static String remoteFilePath1 = "/folder/tg.mp4";
+    private static String remoteFilePath2 = "/folder/ttgg22.mp4";
 
     private static Atomix atomix;
     private static DistributedList<CrushMap> distributed_crush_maps;
@@ -33,7 +35,7 @@ public class Main {
         String textToPost = "copy pasterino oparino doparino";
         try {
             boolean success = post_bytes(textToPost.getBytes(),
-                    "/folder/tg.mp4",
+                    remoteFilePath1,
                     distributed_crush_maps.get(distributed_crush_maps.size() - 1),
                     distributed_metadata_tree,
                     metaLock
@@ -78,7 +80,7 @@ public class Main {
         try {
             boolean success = post_file(
                     path+"toogood.mp4",
-                    "/folder/tg.mp4",
+                    remoteFilePath1,
                     distributed_crush_maps.get(distributed_crush_maps.size() - 1),
                     distributed_metadata_tree,
                     metaLock
@@ -96,7 +98,7 @@ public class Main {
 
         MetadataTree meta_tree = distributed_metadata_tree.get();
 
-        byte[][] file_bytes = get_file("/folder/tg.mp4", distributed_crush_maps.get(distributed_crush_maps.size() - 1), meta_tree);
+        byte[][] file_bytes = get_file(remoteFilePath1, distributed_crush_maps.get(distributed_crush_maps.size() - 1), meta_tree);
 
         byteArraysToFile(file_bytes, new File(path + "toobad.mp4"));
 
@@ -106,7 +108,7 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        MetadataNode node = distributed_metadata_tree.get().goToNode("/folder/ttgg2.mp4");
+        MetadataNode node = distributed_metadata_tree.get().goToNode(remoteFilePath1);
         if(node != null)
             System.out.println(node.getHash());
         else
@@ -116,10 +118,8 @@ public class Main {
     }
 
     public static void test_file_copying() {
-        String filePath1 = "/folder/tg.mp4";
-        String filePath2 = "/folder/ttgg22.mp4";
         CrushMap crushMap = distributed_crush_maps.get(distributed_crush_maps.size()-1);
-        if(FileChunkUtils.copyFile(filePath1, filePath2, "ttgg22.mp4", crushMap, distributed_metadata_tree, metaLock))
+        if(FileChunkUtils.copyFile(remoteFilePath1, remoteFilePath2, "ttgg22.mp4", crushMap, distributed_metadata_tree, metaLock))
             System.out.println("Copied file successfully!");
         else
             System.out.println("Failed to copy file!");
@@ -128,13 +128,13 @@ public class Main {
         // must update metadataTree here
         MetadataTree metadataTree = distributed_metadata_tree.get();
 
-        byte[][] file_bytes = get_file(filePath2, crushMap, metadataTree);
+        byte[][] file_bytes = get_file(remoteFilePath2, crushMap, metadataTree);
         byteArraysToFile(file_bytes, new File(path + "toobaddd2.mp4"));
 
         try {
             System.out.println("Local and remote file hashes:");
             System.out.println(DigestUtils.sha256Hex(new FileInputStream(path + "toobaddd2.mp4")));
-            MetadataNode node = metadataTree.goToNode(filePath2);
+            MetadataNode node = metadataTree.goToNode(remoteFilePath2);
             if(node != null)
                 System.out.println(node.getHash());
             else
