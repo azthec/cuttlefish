@@ -3,8 +3,6 @@ package app;
 import commons.FileChunkUtils;
 import commons.MetadataNode;
 import commons.MetadataTree;
-import commons.ObjectStorageNode;
-import exceptions.InvalidNodeException;
 import io.atomix.core.lock.DistributedLock;
 import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONObject;
@@ -17,13 +15,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import java.io.*;
 import java.net.URLDecoder;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static app.ApplicationServer.*;
+import static commons.FileMetadataUtils.createRemoteDirectory;
+import static commons.FileMetadataUtils.deleteRemote;
 
 
 @Path("/api")
@@ -160,34 +158,7 @@ public class EntryPoint {
      * @return an empty String for success or an error message.
      */
     private String mkdir(String newFoldername, String currPath, DistributedLock lock) {
-        String res = "";
-        try {
-            if (lock.tryLock(10, TimeUnit.SECONDS)) {
-                MetadataTree tree = distributed_metadata_tree.get();
-                MetadataNode currNode = tree.goToNodeIfNotDeleted(currPath);
-                MetadataNode newNode = tree.goToNodeIfNotDeleted(currPath+newFoldername+"/");
-                System.out.println("I WANNA DO: "+ currPath+"/"+newFoldername+"/");
-                if (newNode != null) {
-                    System.out.println("node with that name already exists");
-                    if (newNode.isFolder())
-                        res = "That folder already exists...";
-                    else if (newNode.isFile())
-                        res = "That's an already existing file...";
-                } else if (newNode == null) {
-                    System.out.println("node with that name doesnt exist");
-                    currNode.addFolder(newFoldername);
-                }
-                distributed_metadata_tree.set(tree);
-                res += "\n mkdir finished";
-                lock.unlock();
-
-            } else {
-                res = "Couldn't obtain the lock, operation aborted";
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return res;
+        return createRemoteDirectory(newFoldername, currPath, distributed_metadata_tree, lock);
     }
 
     /**
@@ -198,58 +169,8 @@ public class EntryPoint {
      * @return empty String for success, or an error message.
      */
     private String rmdir(String folderName, String currPath, DistributedLock lock) {
-        String res = "";
-        try {
-            // lock success
-            if (lock.tryLock(10, TimeUnit.SECONDS)) {
-
-                MetadataTree tree = distributed_metadata_tree.get();
-                MetadataNode currNode = tree.goToNodeIfNotDeleted(currPath);
-                MetadataNode newNode;// = tree.goToNode(currNode,folderName);
-
-                if (folderName.charAt(0) == '/'){
-                    System.out.println("abs path given");
-                    newNode = tree.goToNodeIfNotDeleted(folderName); // abs path
-                }
-                else{
-                    System.out.println("relative path given");
-                    newNode = tree.goToNodeIfNotDeleted(currPath+folderName); // relative path
-                }
-
-                if (newNode != null && !newNode.isDeleted()) {
-                    System.out.println("node not null and not deleted");
-                    if (newNode.isFolder()) {
-                        System.out.println("node is folder");
-                        if (newNode != currNode) {
-                            // remove
-                            System.out.println("node is not currnode");
-                            MetadataNode parentNode = newNode.getParent();
-                            newNode.delete();
-                        } else {
-                            System.out.println("node is currnode");
-                            res = "Cannot remove your current directory";
-                        }
-                    } else if (newNode.isFile())
-                        System.out.println("node is a file");
-                        res = "That's a file...";
-                } else {
-                    System.out.println("no folder with that name");
-                    res = "There is no folder with that name";
-                }
-
-                distributed_metadata_tree.set(tree);
-                res = "rmdir concluded";
-                lock.unlock();
-            }
-            // lock no success
-            else {
-                res = "Couldn't obtain the lock, operation aborted";
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        return res;
+        return deleteRemote(folderName, currPath, MetadataNode.FOLDER,
+                distributed_crush_maps, distributed_metadata_tree, lock);
     }
 
     /**

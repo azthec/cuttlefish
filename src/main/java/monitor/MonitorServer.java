@@ -116,6 +116,13 @@ public class MonitorServer {
             }
         }
 
+        // should be uneeded, but atomix sometimes glitches out on locks
+        try {
+            TimeUnit.SECONDS.sleep(2);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         distributed_crush_maps.get(distributed_crush_maps.size() - 1).print();
         distributed_metadata_tree.get().print();
         if (local_id == "figo")
@@ -128,12 +135,12 @@ public class MonitorServer {
         // TODO uncomment this when implementing OSD failure tolerance
         // If RAFT leader manage OSD hearbeats and update CrushMap
         // adapts to RAFT leader changes automatically
-        try {
-            // give time for OSD's to boot
-            TimeUnit.SECONDS.sleep(30);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            // give time for OSD's to boot
+//            TimeUnit.SECONDS.sleep(30);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
 
          ScheduledFuture<?> heartbeat_manager = register_heartbeat_manager(atomix, local_id, "system");
 

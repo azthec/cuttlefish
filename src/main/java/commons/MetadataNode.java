@@ -5,8 +5,8 @@ import java.util.*;
 // Indispensable
 public class MetadataNode implements Comparable<MetadataNode> {
 
-    static boolean FILE = false;
-    static boolean FOLDER = true;
+    public static boolean FILE = false;
+    public static boolean FOLDER = true;
 
     private MetadataNode parent;
     private String name;
@@ -28,6 +28,9 @@ public class MetadataNode implements Comparable<MetadataNode> {
         this.path = parent.getPath() + name;
     }
 
+    public boolean getType() {
+        return type;
+    }
 
     public String getName() {
         return name;
@@ -115,6 +118,14 @@ public class MetadataNode implements Comparable<MetadataNode> {
 
     public void undelete() {
         this.deleted = false;
+    }
+
+    public boolean hasUndeletedChildren() {
+        for (MetadataNode child : children) {
+            if (!child.isDeleted())
+                return true;
+        }
+        return false;
     }
 
     MetadataNode(String name, boolean type, MetadataNode parent) {
