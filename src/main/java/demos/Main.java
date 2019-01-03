@@ -23,12 +23,24 @@ public class Main {
     private static DistributedLock metaLock;
 
     public static void main(String[] args) {
+
+        System.out.println("STARTING TEST");
         startAtomix();
+        long starttime = System.currentTimeMillis();
         test_file_posting();
+        long posttime =  System.currentTimeMillis() - starttime;
         test_file_getting();
+        long gettime = System.currentTimeMillis() - posttime;
         test_file_copying();
+        long copytime = System.currentTimeMillis() - gettime;
 
         atomix.stop();
+        System.out.println("512MB");
+        System.out.println("posttime: "+posttime);
+        System.out.println("gettime: "+gettime);
+        System.out.println("copytime: "+copytime);
+        System.out.println("---------------------------");
+
     }
 
     public static void post_string_to_file() {
@@ -79,7 +91,7 @@ public class Main {
 
         try {
             boolean success = post_file(
-                    path+"toogood.mp4",
+                    path+"512MB.zip",
                     remoteFilePath1,
                     distributed_crush_maps.get(distributed_crush_maps.size() - 1),
                     distributed_metadata_tree,
